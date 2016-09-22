@@ -162,11 +162,13 @@ function socketToId(socket) {
       });
       */
 
+      remotes[token.name] = remote;
       rserver.on('data', function (chunk) {
         unpacker.fns.addChunk(chunk);
       });
 
       function closeEm() {
+        console.log("closing connection to '" + token.name + "'");
         delete remotes[token.name];
 
         Object.keys(remote.clients).forEach(function (cid) {
