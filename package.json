@@ -21,7 +21,9 @@
   },
   "homepage": "https://github.com/Daplie/node-tunnel-server#readme",
   "dependencies": {
+    "cluster-store": "^2.0.4",
     "jsonwebtoken": "^7.1.9",
-    "sni": "^1.0.0"
+    "sni": "^1.0.0",
+    "tunnel-packer": "^1.0.0"
   }
 }

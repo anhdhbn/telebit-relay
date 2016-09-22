@@ -1,81 +1,113 @@
 'use strict';
 
-var crypto = require('crypto');
 var net = require('net');
 var sni = require('sni');
 var jwt = require('jsonwebtoken');
+var packer = require('tunnel-packer');
 
 var Transform = require('stream').Transform;
 var util = require('util');
-
-function pad(str, len, ch) {
-  var x = '';
-
-  while (str.length < len) {
-    x += (ch || ' ');
-  }
-
-  return x;
-}
 
 function MyTransform(options) {
   if (!(this instanceof MyTransform)) {
     return new MyTransform(options);
   }
-  this.__my_id = options.id;
   this.__my_addr = options.address;
   Transform.call(this, options);
 }
 util.inherits(MyTransform, Transform);
-MyTransform.prototype._transform = function (data, encoding, callback) {
-  var id = this.__my_id;
-  var address = this.__my_addr;
+function transform(me, data, encoding, callback) {
+  var address = me.__my_addr;
 
-  this.push('<');
-  this.push(id);
-  if ('IPv4' === address.family) {
-    this.push('IPv4:' + pad(address.address, 11, ' ') + ':' + pad(address.port, 5));  // 11 ch
-  }
-  else {
-    this.push('IPv6:' + pad(address.address, 39, ' ') + ':' + pad(address.port, 5));  // ipv6 39-ch
-  }
-  //client.socket.write('IPv5:2001:0db8:85a3:0000:0000:ffff:80fe:fefe:00:00');    // ipv4 in ipv6 45-ch
-  this.push(data);
-  this.push(id);
-  this.push('>');
-
+  me.push(packer.pack(address, data));
   callback();
+}
+MyTransform.prototype._transform = function (data, encoding, callback) {
+  return transform(this, data, encoding, callback);
 };
 
-require('cluster-store').create().then(function (store) {
+function socketToAddr(socket) {
+  return { family: socket.remoteFamily, address: socket.remoteAddress, port: socket.remotePort };
+}
+
+function addrToId(address) {
+  return address.family + ',' + address.address + ',' + address.port;
+}
+
+function socketToId(socket) {
+  return addrToId(socketToAddr(socket));
+}
+
+//require('cluster-store').create().then(function (/*store*/) {
   // initialization is now complete
   //store.set('foo', 'bar');
 
   var remotes = {};
-  var server443 = net.createServer(function (socket) {
-    socket.once(function (hello) {
+
+  setInterval(function () {
+    Object.keys(remotes).forEach(function (id) {
+      var remote = remotes[id];
+
+      console.log('Remote ', id, 'has', Object.keys(remote.clients).length, 'clients', remote.socket.bytesRead, remote.socket.bytesWritten);
+      /*
+      forEach(function (cid) {
+        var client = remote.clients[cid];
+      });
+      */
+    });
+  }, 5000);
+
+  var server443 = net.createServer(function (browser) {
+    browser.once('data', function (hello) {
+      //require('fs').writeFileSync('/tmp/sni.hello.bin', hello);
       var servername = sni(hello);
-      var client = remotes[servername];
-      if (!client) {
-        socket.end();
+      var remote = remotes[servername];
+      if (!remote) {
+        console.log("no remote for '" + servername + "'");
+        browser.end();
         return;
       }
-      //var id = crypto.randomBytes(16).toString('hex');
-      var id = client.id;
-      var address = client.socket.address();
-      var transform = new MyTransform({ id: id, address: address });
+      var address = socketToAddr(browser);
+      var id = addrToId(address);
+      var wrapForRemote = new MyTransform({ id: id, remoteId: remote.id, address: address, servername: servername });
 
-      client.socket.unshift(hello);
+      //socket.unshift(hello);
 
-      socket.pipe(transform).pipe(client.socket, { end: true });
-
-      client.clients[id] = socket;
-      socket.on('error', function () {
-        transform.write('|_ERROR_|');
-        delete client.clients[id];
+      //remote.socket/*.pipe(transform)*/.pipe(socket, { end: false });
+      var bstream = browser.pipe(wrapForRemote);
+      /*
+      function write() {
+        console.log("client '" + address.address + "' writing to '" + servername + "'");
+        var bytes = browser.read();
+        if (bytes) {
+          console.log("wrote ", bytes.byteLength);
+          remote.socket.write(bytes, write);
+        }
+        else {
+          console.log("nothing to write right now");
+        }
+      }
+      bstream.on('readable', write);
+      */
+      bstream.on('data', function (chunk) {
+        console.log("client '" + address.address + "' writing to '" + servername + "'", chunk.byteLength);
+        remote.socket.write(chunk);
       });
-      socket.on('end', function () {
-        delete client.clients[id];
+
+      var data = packer.pack(address, hello);
+      console.log("client '" + address.address + "' greeting '" + servername + "'", hello.byteLength, data.byteLength);
+      remote.socket.write(data);
+
+      remote.clients[id] = browser;
+      bstream.on('error', function () {
+        console.error("browser has erred");
+        //wrapForRemote.write('|_ERROR_|');
+        delete remote.clients[id];
+      });
+      bstream.on('end', function () {
+        console.log("browser has closed the socket");
+        //wrapForRemote.write('|_END_|');
+        delete remote.clients[id];
       });
     });
   });
@@ -84,28 +116,75 @@ require('cluster-store').create().then(function (store) {
     console.log('listening on 443');
   });
 
-  var server5443 = net.createServer(function (socket) {
-    socket.once(function (hello) {
+  var server5443 = net.createServer(function (rserver) {
+    rserver.once('data', function (hello) {
       var token;
       try {
         token = jwt.decode(hello.toString('utf8'));
         console.log(token);
       } catch(e) {
-        socket.end();
+        rserver.end();
+        return;
       }
-      var id = crypto.randomBytes(16).toString('hex');
 
-      socket.write(id, function () {
-        remotes[token.name] = {
-          socket: socket
-        , id: id
-        , clients: {}
-        };
+      if (!token.name) {
+        console.log("no 'name' in token");
+        rserver.end();
+        return;
+      }
+
+      var remote = {
+        socket: rserver
+      , id: socketToId(rserver)
+      , clients: {}
+      };
+      var unpacker = packer.create({ onMessage: function (opts) {
+        // opts.data
+        var id = addrToId(opts);
+
+        console.log("remote '" + remote.id + "' has data for '" + id + "'", opts.data.byteLength);
+
+        if (!remote.clients[id]) {
+          console.log('no client for', id, opts.data.toString('utf8').substr(0, 100));
+          //remote.socket.write(packer.pack(opts, Buffer.from('|__END__|')));
+          return;
+        }
+
+        remote.clients[id].write(opts.data);
+      } });
+
+      console.log('new remote:', token.name);
+      /*
+      var data = packer.pack({ family: 'IPv4', address: '254.254.254.1', port: 443 }, Buffer.from(remote.id));
+
+      rserver.write(data, function () {
+        remotes[token.name] = remote;
       });
+      */
+
+      rserver.on('data', function (chunk) {
+        unpacker.fns.addChunk(chunk);
+      });
+
+      function closeEm() {
+        delete remotes[token.name];
+
+        Object.keys(remote.clients).forEach(function (cid) {
+          remote.clients[cid].end();
+          delete remote.clients[cid];
+        });
+
+        //remote = null;
+        //rserver = null;
+        //unpacker = null;
+      }
+
+      rserver.on('end', closeEm);
+      rserver.on('error', closeEm);
     });
   });
 
   server5443.listen(5443, function () {
     console.log('listening on 5443');
   });
-});
+//});
