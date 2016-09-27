@@ -189,4 +189,17 @@ function socketToId(socket) {
   server5443.listen(5443, function () {
     console.log('listening on 5443');
   });
+
+
+  var http80 = require('http').createServer();
+  http80.on('request', function (req, res) {
+    res.end('Happy Day!');
+  });
+
+  var server80 = net.createServer(function (client) {
+    http80.emit('connection', client);
+  });
+  server80.listen(80, function () {
+    console.log('listening on 80');
+  });
 //});
