@@ -24,6 +24,7 @@
     "cluster-store": "^2.0.4",
     "jsonwebtoken": "^7.1.9",
     "sni": "^1.0.0",
-    "tunnel-packer": "^1.0.0"
+    "tunnel-packer": "^1.0.0",
+    "ws": "^1.1.1"
   }
 }
