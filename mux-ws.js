@@ -311,17 +311,14 @@ require('cluster-store').create().then(function (store) {
       var m;
 
       function tryTls() {
-        if (!servername || selfname === servername) {
+        if (!servername || selfname === servername || remotes[servername]) {
           console.log('this is a server or an unknown');
           connectHttps(servername, browser);
           return;
         }
 
-        if (remotes[servername]) {
-          console.log("pipeWs(servername, service, socket, remotes['" + servername + "'])");
-          pipeWs(servername, service, browser, remotes[servername]);
-          return;
-        }
+        console.log("pipeWs(servername, service, socket, remotes['" + servername + "'])");
+        pipeWs(servername, service, browser, remotes[servername]);
       }
 
       // https://github.com/mscdex/httpolyglot/issues/3#issuecomment-173680155
