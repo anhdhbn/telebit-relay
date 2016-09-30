@@ -156,7 +156,7 @@ require('cluster-store').create().then(function (store) {
     remote.unpacker = packer.create(handlers);
     ws.on('message', function (chunk) {
       console.log('message from home cloud to tunneler to browser', chunk.byteLength);
-      console.log(chunk.toString());
+      //console.log(chunk.toString());
       remote.unpacker.fns.addChunk(chunk);
     });
     ws.on('close', function () {
@@ -247,6 +247,10 @@ require('cluster-store').create().then(function (store) {
       console.log('[' + Date.now() + '] socket data', chunk.byteLength);
       myDuplex.push(chunk);
     });
+    socket.on('error', function (err) {
+      console.error('[error] connectHttps TODO close');
+      console.error(err);
+    });
   }
 
   function pipeWs(servername, service, browser, remote) {
@@ -278,10 +282,12 @@ require('cluster-store').create().then(function (store) {
     bstream.wrapped.on('data', function (pchunk) {
       // var chunk = socket.read();
       console.log('[bstream] data from browser to tunneler', pchunk.byteLength);
-      console.log(JSON.stringify(pchunk.toString()));
+      //console.log(JSON.stringify(pchunk.toString()));
       ws.send(pchunk, { binary: true });
     });
-    bstream.wrapped.on('error', function () {
+    bstream.wrapped.on('error', function (err) {
+      console.error('[error] bstream.wrapped.error');
+      console.error(err);
       try {
         ws.send(packer.pack(baddress, null, 'error'), { binary: true });
       } catch(e) {
@@ -387,6 +393,10 @@ require('cluster-store').create().then(function (store) {
       , code: 'E_INVALID_PROTOCOL' }
       }));
       browser.end();
+    });
+    browser.on('error', function (err) {
+      console.error('[error] tcp socket raw TODO forward and close');
+      console.error(err);
     });
 
   });
