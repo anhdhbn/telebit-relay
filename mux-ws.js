@@ -31,12 +31,14 @@ function MyTransform(options) {
     return new MyTransform(options);
   }
   this.__my_addr = options.address;
+  this.__my_service = options.service;
   Transform.call(this, options);
 }
 util.inherits(MyTransform, Transform);
 function transform(me, data, encoding, callback) {
   var address = me.__my_addr;
 
+  address.service = address.service || me.__my_service;
   me.push(packer.pack(address, data));
   callback();
 }
@@ -45,7 +47,11 @@ MyTransform.prototype._transform = function (data, encoding, callback) {
 };
 
 function socketToAddr(socket) {
-  return { family: socket.remoteFamily, address: socket.remoteAddress, port: socket.remotePort };
+  return {
+    family: socket.remoteFamily || socket._remoteFamily
+  , address: socket.remoteAddress || socket._remoteAddress
+  , port: socket.remotePort || socket._remotePort
+  };
 }
 
 function addrToId(address) {
@@ -89,8 +95,7 @@ require('cluster-store').create().then(function (store) {
       return;
     }
 
-    console.log('token.name');
-    console.log(token.name);
+    console.log('token.name:', token.name);
 
     if (!token.name) {
       ws.send({ error: { message: "invalid server name", code: "E_INVALID_NAME" } });
@@ -105,15 +110,36 @@ require('cluster-store').create().then(function (store) {
     var remote = remotes[token.name] = remotes[token.name] || {};
     // TODO allow more than one remote per servername
     remote.ws = ws;
+    remote.servername = token.name;
     remote.id = socketToId(ws.upgradeReq.socket);
+    console.log("remote.id", remote.id);
     // TODO allow tls to be decrypted by server if client is actually a browser
     // and we haven't implemented tls in the browser yet
     remote.decrypt = token.decrypt;
     // TODO how to allow a child process to communicate with this one?
     remote.clients = {};
     remote.handle = { address: null, handle: null };
+    remote.unpacker = packer.create({ onMessage: function (opts) {
+      // opts.data
+      var cid = addrToId(opts);
+      var cstream = remote.clients[cid];
 
+      console.log("remote '" + remote.servername + " : " + remote.id + "' has data for '" + cid + "'", opts.data.byteLength);
+      console.log('cstream.remoteAddress', cstream.remoteAddress, cstream.remoteAddress);
 
+      if (!cstream) {
+        // TODO end
+        console.log('TODO: [end] no client for', cid, opts.data.toString('utf8').substr(0, 100));
+        //remote.socket.write(packer.pack(opts, Buffer.from('|__END__|')));
+        return;
+      }
+
+      cstream.browser.write(opts.data);
+    } });
+    ws.on('message', function (chunk) {
+      console.log('message from home cloud to tunneler to browser', chunk.byteLength);
+      remote.unpacker.fns.addChunk(chunk);
+    });
 
     store.set(token.name, remote.handle);
 	});
@@ -122,7 +148,6 @@ require('cluster-store').create().then(function (store) {
   tcp3000.listen(3000, function () {
     console.log('listening on 3000');
   });
-
 
   var tls3000 = tls.createServer(tlsOpts, function (tlsSocket) {
     console.log('tls connection');
@@ -136,6 +161,26 @@ require('cluster-store').create().then(function (store) {
     });
     */
 
+    console.log('');
+    console.log('');
+    console.log('');
+    console.log('tlsSocket.*Address');
+    console.log('');
+    //console.log(tlsSocket._handle._parentWrap._handle.owner.stream);
+    console.log('r', tlsSocket._handle._parentWrap._handle.owner.stream.remoteAddress);
+    tlsSocket._remoteFamily = tlsSocket._handle._parentWrap._handle.owner.stream.remoteFamily;
+    tlsSocket._remoteAddress = tlsSocket._handle._parentWrap._handle.owner.stream.remoteAddress;
+    tlsSocket._remotePort = tlsSocket._handle._parentWrap._handle.owner.stream.remotePort;
+    console.log('r', tlsSocket.remoteAddress);
+    // https://github.com/nodejs/node/issues/8854
+    // tlsSocket._remoteAddress = remoteAddress; // causes core dump
+    console.log('s', tlsSocket._remoteAddress);
+    //tlsSocket.remoteFamily = tlsSocket.remoteFamily || tlsSocket._handle._parentWrap._handle.owner.stream.remoteFamily;
+    //tlsSocket.remoteAddress = tlsSocket.remoteAddress || tlsSocket._handle._parentWrap._handle.owner.remoteAddress;
+    //tlsSocket.remotePort = tlsSocket.remotePort || tlsSocket._handle._parentWrap._handle.owner.remotePort;
+
+    //console.log(tlsSocket.localAddress);
+    //console.log(tlsSocket.address);
     httpServer.emit('connection', tlsSocket);
     /*
     tlsSocket.on('data', function (chunk) {
@@ -177,6 +222,16 @@ require('cluster-store').create().then(function (store) {
     myDuplex.__my_socket = socket;
     myDuplex._write = Dup.write;
     myDuplex._read = Dup.read;
+    console.log('plainSocket.*Address');
+    console.log('remote:', socket.remoteAddress);
+    console.log('local:', socket.localAddress);
+    console.log('address():', socket.address());
+    myDuplex.remoteFamily = socket.remoteFamily;
+    myDuplex.remoteAddress = socket.remoteAddress;
+    myDuplex.remotePort = socket.remotePort;
+    myDuplex.localFamily = socket.localFamily;
+    myDuplex.localAddress = socket.localAddress;
+    myDuplex.localPort = socket.localPort;
 
     console.log('connectHttps servername', servername);
     tls3000.emit('connection', myDuplex);
@@ -187,7 +242,47 @@ require('cluster-store').create().then(function (store) {
     });
   }
 
-  tcp3000.on('connection', function (socket) {
+  function pipeWs(servername, service, browser, remote) {
+    console.log('pipeWs');
+
+    //var remote = remotes[servername];
+    var ws = remote.ws;
+    //var address = socketToAddr(ws.upgradeReq.socket);
+    var baddress = socketToAddr(browser);
+    var cid = addrToId(baddress);
+    console.log('servername:', servername);
+    console.log('service:', service);
+    baddress.service = service;
+    var wrapForRemote = new MyTransform({
+      id: cid
+    //, remoteId: remote.id
+    , address: baddress
+    , servername: servername
+    , service: service
+    });
+    console.log('home-cloud is', socketToId(remote));
+    console.log('browser is', cid);
+    var bstream = remote.clients[cid] = {
+      wrapped: browser.pipe(wrapForRemote)
+    , browser: browser
+    };
+    //var bstream = remote.clients[cid] = wrapForRemote.pipe(browser);
+    bstream.wrapped.on('data', function (pchunk) {
+      // var chunk = socket.read();
+      console.log('[bstream] data from browser to tunneler', pchunk.byteLength);
+      console.log(JSON.stringify(pchunk.toString()));
+      ws.send(pchunk, { binary: true });
+    });
+    bstream.wrapped.on('error', function () {
+      // TODO send end to tunneler
+      delete remote.clients[cid];
+    });
+    bstream.wrapped.on('end', function () {
+      delete remote.clients[cid];
+    });
+  }
+
+  tcp3000.on('connection', function (browser) {
     // this works when I put it here, but I don't know if it's tls yet here
     // httpsServer.emit('connection', socket);
     //tls3000.emit('connection', socket);
@@ -198,7 +293,7 @@ require('cluster-store').create().then(function (store) {
     //});
 
     //return;
-    socket.once('data', function (firstChunk) {
+    browser.once('data', function (firstChunk) {
       // BUG XXX: this assumes that the packet won't be chunked smaller
       // than the 'hello' or the point of the 'Host' header.
       // This is fairly reasonable, but there are edge cases where
@@ -207,9 +302,7 @@ require('cluster-store').create().then(function (store) {
 
       // defer after return (instead of being in many places)
       process.nextTick(function () {
-        console.log('unshift firstChunk', firstChunk.byteLength);
-        console.log(firstChunk.toString());
-        socket.unshift(firstChunk);
+        browser.unshift(firstChunk);
       });
 
       var service = 'tcp';
@@ -217,77 +310,18 @@ require('cluster-store').create().then(function (store) {
       var str;
       var m;
 
-      function pipeWs(socket, remote) {
-        //var remote = remotes[servername];
-        var ws = remote.ws;
-        //var address = socketToAddr(ws.upgradeReq.socket);
-        var address = socketToAddr(socket);
-        var id = addrToId(address);
-        var wrapForRemote = new MyTransform({
-          id: id
-        //, remoteId: remote.id
-        , address: address
-        , servername: servername
-        });
-
-        var unpacker = packer.create({ onMessage: function (opts) {
-          // opts.data
-          var cid = addrToId(opts);
-          var cstream = remote.clients[cid];
-
-          console.log("remote '" + remote.id + "' has data for '" + id + "'", opts.data.byteLength);
-
-          if (!cstream) {
-            console.log('no client for', cid, opts.data.toString('utf8').substr(0, 100));
-            //remote.socket.write(packer.pack(opts, Buffer.from('|__END__|')));
-            return;
-          }
-
-          cstream.write(opts.data);
-        } });
-        //socket.unshift(hello);
-
-        //remote.socket/*.pipe(transform)*/.pipe(socket, { end: false });
-        var bstream = remote.clients[id] = socket.pipe(wrapForRemote);
-        bstream.on('data', function (pchunk) {
-          // var chunk = socket.read();
-          ws.send(pchunk, { binary: true });
-        });
-        ws.on('message', function (chunk) {
-          unpacker.fns.addChunk(chunk);
-        });
-      }
-
       function tryTls() {
         if (!servername || selfname === servername) {
           console.log('this is a server or an unknown');
-          connectHttps(servername, socket);
+          connectHttps(servername, browser);
           return;
         }
 
         if (remotes[servername]) {
-          console.log("pipeWs(socket, remotes['" + servername + "'])");
-          pipeWs(socket, remotes[servername]);
+          console.log("pipeWs(servername, service, socket, remotes['" + servername + "'])");
+          pipeWs(servername, service, browser, remotes[servername]);
           return;
         }
-
-        /*
-        store.get(servername, function (remote) {
-          if (!remote) {
-            connectHttps(servername, socket);
-            return;
-          }
-
-          if (!remote.address) {
-            console.error("connecting to a socket in a sibling process is not yet implemented");
-            connectHttps(servername, socket);
-            return;
-          }
-
-          console.error("connecting to a socket in a sibling process is not yet implemented");
-          connectHttps(servername, socket);
-        });
-        */
       }
 
       // https://github.com/mscdex/httpolyglot/issues/3#issuecomment-173680155
@@ -295,38 +329,40 @@ require('cluster-store').create().then(function (store) {
         // TLS
         service = 'https';
         servername = (sni(firstChunk)||'').toLowerCase();
+        console.log("tls hello servername:", servername);
         tryTls();
         return;
       }
 
       if (firstChunk[0] > 32 && firstChunk[0] < 127) {
         str = firstChunk.toString();
-        m = str.match(/^Host: ([^\r\n]+)[\r\n]+/i);
-        servername = m && m[1].toLowerCase() || '';
+        m = str.match(/(?:^|[\r\n])Host: ([^\r\n]+)[\r\n]*/im);
+        servername = (m && m[1].toLowerCase() || '').split(':')[0];
+        console.log('servername', servername);
         if (/HTTP\//i.test(str)) {
           service = 'http';
           if (/\/\.well-known\//.test(str)) {
             // HTTP
             if (remotes[servername]) {
-              pipeWs(socket, remotes[servername]);
+              pipeWs(servername, service, browser, remotes[servername]);
               return;
             }
-            connectHttp(servername, socket);
+            connectHttp(servername, browser);
           }
           else {
             // redirect to https
-            connectHttp(servername, socket);
+            connectHttp(servername, browser);
           }
           return;
         }
       }
 
       console.error("Got unexpected connection", str);
-      socket.write(JSON.stringify({ error: {
+      browser.write(JSON.stringify({ error: {
         message: "not sure what you were trying to do there..."
       , code: 'E_INVALID_PROTOCOL' }
       }));
-      socket.end();
+      browser.end();
     });
 
   });
