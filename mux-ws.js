@@ -81,22 +81,30 @@ require('cluster-store').create().then(function (store) {
 	wss.on('connection', function (ws) {
 		var location = url.parse(ws.upgradeReq.url, true);
     //var token = jwt.decode(location.query.access_token);
-    var token = jwt.verify(location.query.access_token, secret);
+    var token;
 
+    try {
+      token = jwt.verify(location.query.access_token, secret);
+    } catch(e) {
+      token = null;
+    }
+
+    /*
     if (!token || !token.name) {
       console.log('location, token');
       console.log(location.query.access_token);
       console.log(token);
     }
+    */
 
     if (!token) {
-      ws.send({ error: { message: "invalid access token", code: "E_INVALID_TOKEN" } });
+      ws.send(JSON.stringify({ error: { message: "invalid access token", code: "E_INVALID_TOKEN" } }));
       ws.close();
       return;
     }
 
     if (!token.name) {
-      ws.send({ error: { message: "invalid server name", code: "E_INVALID_NAME" } });
+      ws.send(JSON.stringify({ error: { message: "invalid server name", code: "E_INVALID_NAME" } }));
       ws.close();
       return;
     }
