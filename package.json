@@ -1,8 +1,13 @@
 {
-  "name": "tunnel-server",
-  "version": "1.0.0",
-  "description": "A naive tcp tunnel server",
-  "main": "serve.js",
+  "name": "stunneld",
+  "version": "0.8.0",
+  "description": "A pure-JavaScript tunnel daemon for http and https similar to a localtunnel.me server, but uses TLS (SSL) with ServerName Indication (SNI) over https to work even in harsh network conditions such as in student dorms and behind HOAs, corporate firewalls, public libraries, airports, airplanes, etc. Can also tunnel tls and plain tcp.",
+  "main": "wstunneld.js",
+  "bin": {
+    "jstunneld": "bin/stunneld.js",
+    "stunneld.js": "bin/stunneld.js",
+    "stunneld-js": "bin/stunneld.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -11,8 +16,28 @@
     "url": "git+https://github.com/Daplie/node-tunnel-server.git"
   },
   "keywords": [
+    "server",
+    "daemon",
     "tcp",
-    "tunnel"
+    "tls",
+    "http",
+    "https",
+    "sni",
+    "servername",
+    "indication",
+    "stunnel",
+    "secure",
+    "securetunnel",
+    "secure-tunnel",
+    "tunnel",
+    "localtunnel",
+    "localtunnel.me",
+    "proxy",
+    "reverse",
+    "reverse-proxy",
+    "reverseproxy",
+    "vpn",
+    "sni"
   ],
   "author": "AJ ONeal <coolaj86@gmail.com> (https://coolaj86.com/)",
   "license": "(MIT OR Apache-2.0)",
