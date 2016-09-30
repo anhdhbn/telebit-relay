@@ -311,7 +311,7 @@ require('cluster-store').create().then(function (store) {
       var m;
 
       function tryTls() {
-        if (!servername || selfname === servername || remotes[servername]) {
+        if (!servername || selfname === servername || !remotes[servername]) {
           console.log('this is a server or an unknown');
           connectHttps(servername, browser);
           return;
