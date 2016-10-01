@@ -20,7 +20,7 @@ npm install -g stunnel
 How to use `stunnel.js` with your own instance of `stunneld.js`:
 
 ```bash
-stunneld.js --servenames tunnel.example.com --protocols wss --secret abc123
+stunneld.js --servernames tunnel.example.com --protocols wss --secret abc123
 ```
 
 Options
@@ -29,6 +29,13 @@ Options
 --secret          the same secret used by stunnel client (used for authentication)
 --serve           comma separated list of <proto>:<servername>:<port> to which
                   incoming http and https should be forwarded
+```
+
+### Privileged Ports without sudo
+
+```bash
+# Linux
+sudo setcap 'cap_net_bind_service=+ep' $(which node)
 ```
 
 ### Alterntive Methods

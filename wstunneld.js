@@ -313,10 +313,10 @@ module.exports.create = function (opts) {
 
 	wss.on('connection', onWsConnection);
 
-  opts.ports.forEach(function () {
+  opts.ports.forEach(function (port) {
     var tcp3000 = net.createServer();
-    tcp3000.listen(3000, function () {
-      console.log('listening on 3000');
+    tcp3000.listen(port, function () {
+      console.log('listening on ' + port);
     });
     tcp3000.on('connection', onTcpConnection);
   });
