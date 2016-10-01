@@ -163,7 +163,7 @@ module.exports.create = function (opts) {
     , servername: servername
     , service: service
     });
-    console.log('home-cloud is', packer.socketToId(remote));
+    console.log('home-cloud is', packer.socketToId(remote.ws.upgradeReq.socket));
     console.log('browser is', cid);
     var bstream = remote.clients[cid] = {
       wrapped: browser.pipe(wrapForRemote)
