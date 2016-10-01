@@ -49,11 +49,9 @@ program
   .action(function (url) {
     program.url = url;
   })
-  .option('-k --insecure', 'Allow TLS connections to stunneld without valid certs (rejectUnauthorized: false)')
-  .option('--locals <LINE>', 'comma separated list of <proto>:<//><servername>:<port> to which matching incoming http and https should forward (reverse proxy). Ex: https://john.example.com,tls:*:1337', collectProxies, [ ]) // --reverse-proxies
-  .option('--stunneld <URL>', 'the domain (or ip address) at which you are running stunneld.js (the proxy)') // --proxy
+  .option('--serve <LINE>', 'comma separated list of <proto>:<//><servername>:<port> to which matching incoming http and https should forward (reverse proxy). Ex: https://john.example.com,tls:*:1337', collectProxies, [ ]) // --reverse-proxies
+  .option('--serve <URL>', 'the domain (or ip address) at which you are running stunneld.js (the proxy)') // --proxy
   .option('--secret <STRING>', 'the same secret used by stunneld (used for JWT authentication)')
-  .option('--token <STRING>', 'a pre-generated token for use with stunneld (instead of generating one with --secret)')
   .parse(process.argv)
   ;
 
@@ -73,19 +71,32 @@ if (!location.protocol || /\./.test(location.protocol)) {
 }
 program.stunneld = location.protocol + '//' + location.hostname + (location.port ? ':' + location.port : '');
 
-program.locals.forEach(function (proxy) {
+program.serve.forEach(function (proxy) {
   domainsMap[proxy.hostname] = true;
 });
 tokenData.domains = Object.keys(domainsMap);
 tokenData.name = tokenData.domains[0];
 
 program.services = {};
-program.locals.forEach(function (proxy) {
+program.serve.forEach(function (proxy) {
   //program.services = { 'ssh': 22, 'http': 80, 'https': 443 };
   program.services[proxy.protocol] = proxy.port;
 });
 program.token = program.token || jwt.sign(tokenData, program.secret || 'shhhhh');
 
-stunnel.connect(program);
+
+// TODO letsencrypt
+program.tlsOptions = require('localhost.daplie.com-certificates').merge({});
+if (!program.secret) {
+  // TODO randomly generate and store in file?
+  console.warn("[SECURITY] using default --secret 'shhhhh'");
+  program.secret = 'shhhhh';
+}
+
+require('cluster-store').create().then(function (store) {
+  program.store = store;
+
+  stunneld.connect(program);
+});
 
 }());

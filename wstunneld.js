@@ -6,79 +6,12 @@ var http = require('http');
 var sni = require('sni');
 var url = require('url');
 var jwt = require('jsonwebtoken');
-//var packer = require('tunnel-packer');
-//var Transform = require('stream').Transform;
-var tlsOpts = require('localhost.daplie.com-certificates').merge({});
-var Duplex = require('stream').Duplex;
+var packer = require('tunnel-packer');
 var WebSocketServer = require('ws').Server;
 
+module.exports.create = function (opts) {
 
-
-
-
-/*
- *
- * Tunnel Packer
- *
- */
-var packer = require('tunnel-packer');
-
-var Transform = require('stream').Transform;
-var util = require('util');
-
-function MyTransform(options) {
-  if (!(this instanceof MyTransform)) {
-    return new MyTransform(options);
-  }
-  this.__my_addr = options.address;
-  this.__my_service = options.service;
-  Transform.call(this, options);
-}
-util.inherits(MyTransform, Transform);
-function transform(me, data, encoding, callback) {
-  var address = me.__my_addr;
-
-  address.service = address.service || me.__my_service;
-  me.push(packer.pack(address, data));
-  callback();
-}
-MyTransform.prototype._transform = function (data, encoding, callback) {
-  return transform(this, data, encoding, callback);
-};
-
-function socketToAddr(socket) {
-  return {
-    family: socket.remoteFamily || socket._remoteFamily
-  , address: socket.remoteAddress || socket._remoteAddress
-  , port: socket.remotePort || socket._remotePort
-  };
-}
-
-function addrToId(address) {
-  return address.family + ',' + address.address + ',' + address.port;
-}
-
-function socketToId(socket) {
-  return addrToId(socketToAddr(socket));
-}
-
-
-
-
-
-require('cluster-store').create().then(function (store) {
-  var remotes = {};
-  var selfname = 'pokemap.hellabit.com';
-  var secret = 'shhhhh';
-
-  var httpServer = http.createServer(function (req, res) {
-    console.log('req.socket.encrypted', req.socket.encrypted);
-    res.end('Hello, World!');
-  });
-  var wss = new WebSocketServer({ server: httpServer });
-  var tcp3000 = net.createServer();
-
-	wss.on('connection', function (ws) {
+  function onWsConnection(ws) {
 		var location = url.parse(ws.upgradeReq.url, true);
     //var token = jwt.decode(location.query.access_token);
     var token;
@@ -113,7 +46,7 @@ require('cluster-store').create().then(function (store) {
     var handlers = {
       onmessage: function (opts) {
         // opts.data
-        var cid = addrToId(opts);
+        var cid = packer.addrToId(opts);
         var cstream = remote.clients[cid];
 
         console.log("remote '" + remote.servername + " : " + remote.id + "' has data for '" + cid + "'", opts.data.byteLength);
@@ -126,12 +59,12 @@ require('cluster-store').create().then(function (store) {
         cstream.browser.write(opts.data);
       }
     , onend: function (opts) {
-        var cid = addrToId(opts);
+        var cid = packer.addrToId(opts);
         console.log('[TunnelEnd]', cid);
         handlers._onend(cid);
       }
     , onerror: function (opts) {
-        var cid = addrToId(opts);
+        var cid = packer.addrToId(opts);
         console.log('[TunnelError]', cid);
         handlers._onend(cid);
       }
@@ -153,7 +86,7 @@ require('cluster-store').create().then(function (store) {
     // TODO allow more than one remote per servername
     remote.ws = ws;
     remote.servername = token.name;
-    remote.id = socketToId(ws.upgradeReq.socket);
+    remote.id = packer.socketToId(ws.upgradeReq.socket);
     console.log("remote.id", remote.id);
     // TODO allow tls to be decrypted by server if client is actually a browser
     // and we haven't implemented tls in the browser yet
@@ -182,43 +115,8 @@ require('cluster-store').create().then(function (store) {
       // the remote will retry if it wants to
     });
 
-    store.set(token.name, remote.handle);
-	});
-
-
-  tcp3000.listen(3000, function () {
-    console.log('listening on 3000');
-  });
-
-  var tls3000 = tls.createServer(tlsOpts, function (tlsSocket) {
-    console.log('tls connection');
-
-    tlsSocket._remoteFamily = tlsSocket._handle._parentWrap._handle.owner.stream.remoteFamily;
-    tlsSocket._remoteAddress = tlsSocket._handle._parentWrap._handle.owner.stream.remoteAddress;
-    tlsSocket._remotePort = tlsSocket._handle._parentWrap._handle.owner.stream.remotePort;
-    // TODO BUG XXX
-    // https://github.com/nodejs/node/issues/8854
-    // tlsSocket.remoteAddress = remoteAddress; // causes core dump
-    // console.log(tlsSocket.remoteAddress);
-    console.log('s', tlsSocket._remoteAddress);
-    httpServer.emit('connection', tlsSocket);
-  });
-
-  var Dup = {
-    write: function (chunk, encoding, cb) {
-      //console.log('_write', chunk.byteLength);
-      this.__my_socket.write(chunk, encoding);
-      cb();
-    }
-  , read: function (size) {
-      //console.log('_read');
-      var x = this.__my_socket.read(size);
-      if (x) {
-        console.log('_read', size);
-        this.push(x);
-      }
-    }
-  };
+    //store.set(token.name, remote.handle);
+	}
 
   function connectHttp(servername, socket) {
     console.log("connectHttp('" + servername + "', socket)");
@@ -232,21 +130,7 @@ require('cluster-store').create().then(function (store) {
     // tlsServer.emit('connection', socket);    // this didn't work either
     //console.log('chunkLen', firstChunk.byteLength);
 
-    var myDuplex = new Duplex();
-
-    myDuplex.__my_socket = socket;
-    myDuplex._write = Dup.write;
-    myDuplex._read = Dup.read;
-    console.log('plainSocket.*Address');
-    console.log('remote:', socket.remoteAddress);
-    console.log('local:', socket.localAddress);
-    console.log('address():', socket.address());
-    myDuplex.remoteFamily = socket.remoteFamily;
-    myDuplex.remoteAddress = socket.remoteAddress;
-    myDuplex.remotePort = socket.remotePort;
-    myDuplex.localFamily = socket.localFamily;
-    myDuplex.localAddress = socket.localAddress;
-    myDuplex.localPort = socket.localPort;
+    var myDuplex = packer.Stream.create(socket);
 
     console.log('connectHttps servername', servername);
     tls3000.emit('connection', myDuplex);
@@ -266,20 +150,20 @@ require('cluster-store').create().then(function (store) {
 
     //var remote = remotes[servername];
     var ws = remote.ws;
-    //var address = socketToAddr(ws.upgradeReq.socket);
-    var baddress = socketToAddr(browser);
-    var cid = addrToId(baddress);
+    //var address = packer.socketToAddr(ws.upgradeReq.socket);
+    var baddress = packer.socketToAddr(browser);
+    var cid = packer.addrToId(baddress);
     console.log('servername:', servername);
     console.log('service:', service);
     baddress.service = service;
-    var wrapForRemote = new MyTransform({
+    var wrapForRemote = packer.Transform.create({
       id: cid
     //, remoteId: remote.id
     , address: baddress
     , servername: servername
     , service: service
     });
-    console.log('home-cloud is', socketToId(remote));
+    console.log('home-cloud is', packer.socketToId(remote));
     console.log('browser is', cid);
     var bstream = remote.clients[cid] = {
       wrapped: browser.pipe(wrapForRemote)
@@ -323,7 +207,7 @@ require('cluster-store').create().then(function (store) {
     });
   }
 
-  tcp3000.on('connection', function (browser) {
+  function onTcpConnection(browser) {
     // this works when I put it here, but I don't know if it's tls yet here
     // httpsServer.emit('connection', socket);
     //tls3000.emit('connection', socket);
@@ -352,7 +236,7 @@ require('cluster-store').create().then(function (store) {
       var m;
 
       function tryTls() {
-        if (!servername || selfname === servername || !remotes[servername]) {
+        if (!servername || (-1 !== selfnames.indexOf(servername)) || !remotes[servername]) {
           console.log('this is a server or an unknown');
           connectHttps(servername, browser);
           return;
@@ -407,5 +291,34 @@ require('cluster-store').create().then(function (store) {
       console.error(err);
     });
 
+  }
+
+  var tlsOpts = opts.tlsOptions;
+  //var store = opts.store;
+
+  var remotes = {};
+  var selfnames = opts.servernames;
+  var secret = opts.secret;
+
+  var httpServer = http.createServer(function (req, res) {
+    console.log('req.socket.encrypted', req.socket.encrypted);
+    res.end('Hello, World!');
   });
-});
+  var tls3000 = tls.createServer(tlsOpts, function (tlsSocket) {
+    console.log('tls connection');
+    // things get a little messed up here
+    httpServer.emit('connection', tlsSocket);
+  });
+  var wss = new WebSocketServer({ server: httpServer });
+
+	wss.on('connection', onWsConnection);
+
+  opts.ports.forEach(function () {
+    var tcp3000 = net.createServer();
+    tcp3000.listen(3000, function () {
+      console.log('listening on 3000');
+    });
+    tcp3000.on('connection', onTcpConnection);
+  });
+
+};
