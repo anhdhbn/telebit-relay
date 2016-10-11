@@ -36,13 +36,27 @@ module.exports.create = function (opts) {
       return;
     }
 
-    if (!token.name) {
+    if (!Array.isArray(token.domains)) {
+      if ('string' === typeof token.name) {
+        token.domains = [ token.name ];
+      }
+    }
+
+    if (!Array.isArray(token.domains)) {
       ws.send(JSON.stringify({ error: { message: "invalid server name", code: "E_INVALID_NAME" } }));
       ws.close();
       return;
     }
 
-    var remote = remotes[token.name] = remotes[token.name] || {};
+    var remote;
+    token.domains.some(function (domainname) {
+      remote = remotes[domainname];
+      return remote;
+    });
+    remote = remote || {};
+    token.domains.forEach(function (domainname) {
+      remotes[domainname] = remote;
+    });
     var handlers = {
       onmessage: function (opts) {
         // opts.data
@@ -85,7 +99,7 @@ module.exports.create = function (opts) {
     };
     // TODO allow more than one remote per servername
     remote.ws = ws;
-    remote.servername = token.name;
+    remote.servername = token.domains.join(',');
     remote.id = packer.socketToId(ws.upgradeReq.socket);
     console.log("remote.id", remote.id);
     // TODO allow tls to be decrypted by server if client is actually a browser
@@ -263,7 +277,7 @@ module.exports.create = function (opts) {
         console.log('servername', servername);
         if (/HTTP\//i.test(str)) {
           service = 'http';
-          if (/\/\.well-known\//.test(str)) {
+          if (/\/\.well-known\/acme-challenge\//.test(str)) {
             // HTTP
             if (remotes[servername]) {
               pipeWs(servername, service, browser, remotes[servername]);
