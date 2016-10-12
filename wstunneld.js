@@ -189,7 +189,15 @@ module.exports.create = function (opts) {
       // var chunk = socket.read();
       console.log('[bstream] data from browser to tunneler', pchunk.byteLength);
       //console.log(JSON.stringify(pchunk.toString()));
-      ws.send(pchunk, { binary: true });
+      try {
+        ws.send(pchunk, { binary: true });
+      } catch(e) {
+        try {
+          bstream.browser.end();
+        } catch(e) {
+          // ignore
+        }
+      }
     });
     bstream.wrapped.on('error', function (err) {
       console.error('[error] bstream.wrapped.error');
