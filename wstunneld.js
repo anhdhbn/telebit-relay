@@ -9,7 +9,7 @@ var jwt = require('jsonwebtoken');
 var packer = require('tunnel-packer');
 var WebSocketServer = require('ws').Server;
 
-module.exports.create = function (opts) {
+module.exports.create = function (copts) {
 
   function onWsConnection(ws) {
 		var location = url.parse(ws.upgradeReq.url, true);
@@ -285,7 +285,7 @@ module.exports.create = function (opts) {
         console.log('servername', servername);
         if (/HTTP\//i.test(str)) {
           service = 'http';
-          if (/\/\.well-known\/acme-challenge\//.test(str)) {
+          if (/^\/\.well-known\/acme-challenge\//.test(str)) {
             // HTTP
             if (remotes[servername]) {
               pipeWs(servername, service, browser, remotes[servername]);
@@ -315,12 +315,12 @@ module.exports.create = function (opts) {
 
   }
 
-  var tlsOpts = opts.tlsOptions;
-  //var store = opts.store;
+  var tlsOpts = copts.tlsOptions;
+  //var store = copts.store;
 
   var remotes = {};
-  var selfnames = opts.servernames;
-  var secret = opts.secret;
+  var selfnames = copts.servernames;
+  var secret = copts.secret;
 
   var httpServer = http.createServer(function (req, res) {
     console.log('req.socket.encrypted', req.socket.encrypted);
@@ -335,7 +335,7 @@ module.exports.create = function (opts) {
 
 	wss.on('connection', onWsConnection);
 
-  opts.ports.forEach(function (port) {
+  copts.ports.forEach(function (port) {
     var tcp3000 = net.createServer();
     tcp3000.listen(port, function () {
       console.log('listening on ' + port);
