@@ -55,6 +55,7 @@ module.exports.create = function (copts) {
     });
     remote = remote || {};
     token.domains.forEach(function (domainname) {
+      console.log('domainname', domainname);
       remotes[domainname] = remote;
     });
     var handlers = {
@@ -135,7 +136,7 @@ module.exports.create = function (copts) {
   function connectHttp(servername, socket) {
     console.log("connectHttp('" + servername + "', socket)");
     socket.__my_servername = servername;
-    httpServer.emit('connection', socket);
+    redirectServer.emit('connection', socket);
   }
 
   function connectHttps(servername, socket) {
@@ -321,7 +322,12 @@ module.exports.create = function (copts) {
   var remotes = {};
   var selfnames = copts.servernames;
   var secret = copts.secret;
+  var redirectHttps = require('redirect-https')();
 
+  var redirectServer = http.createServer(function (req, res) {
+    res.setHeader('Connection', 'close');
+    redirectHttps(req, res);
+  });
   var httpServer = http.createServer(function (req, res) {
     console.log('req.socket.encrypted', req.socket.encrypted);
     res.end('Hello, World!');
