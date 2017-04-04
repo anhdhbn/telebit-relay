@@ -1,6 +1,6 @@
 {
   "name": "stunneld",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "A pure-JavaScript tunnel daemon for http and https similar to a localtunnel.me server, but uses TLS (SSL) with ServerName Indication (SNI) over https to work even in harsh network conditions such as in student dorms and behind HOAs, corporate firewalls, public libraries, airports, airplanes, etc. Can also tunnel tls and plain tcp.",
   "main": "wstunneld.js",
   "bin": {
