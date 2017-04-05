@@ -48,6 +48,7 @@
   "dependencies": {
     "cluster-store": "^2.0.4",
     "commander": "^2.9.0",
+    "greenlock": "^2.1.12",
     "jsonwebtoken": "^7.1.9",
     "localhost.daplie.com-certificates": "^1.2.3",
     "redirect-https": "^1.1.0",

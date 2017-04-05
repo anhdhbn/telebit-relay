@@ -1,23 +1,84 @@
 'use strict';
 
-var net = require('net');
-var tls = require('tls');
-var http = require('http');
 var sni = require('sni');
 var url = require('url');
 var jwt = require('jsonwebtoken');
 var packer = require('tunnel-packer');
-var WebSocketServer = require('ws').Server;
 
+var Devices = {};
+Devices.replace = function (store, servername, newDevice) {
+  var devices = Devices.list(store, servername);
+  var oldDevice;
+  if (!devices.some(function (device, i) {
+    if ((device.deviceId && device.deviceId === newDevice.deviceId)
+        || (device.servername && device.servername === newDevice.servername)) {
+      oldDevice = devices[i];
+      devices[i] = newDevice;
+      return true;
+    }
+  })) {
+    devices.push(newDevice);
+    store[servername] = devices;
+  }
+  return oldDevice;
+};
+Devices.remove = function (store, servername, newDevice) {
+  var devices = Devices.list(store, servername);
+  var oldDevice;
+  devices.some(function (device, i) {
+    if ((device.deviceId && device.deviceId === newDevice.deviceId)
+        || (device.servername && device.servername === newDevice.servername)) {
+      oldDevice = devices.splice(i, 1);
+      return true;
+    }
+  });
+  return oldDevice;
+};
+Devices.list = function (store, servername) {
+  return store[servername] || [];
+};
+Devices.exist = function (store, servername) {
+  return (store[servername] || []).length;
+};
+Devices.next = function (store, servername) {
+  var devices = Devices.list(store, servername);
+
+  if (devices._index >= devices.length) {
+    devices._index = 0;
+  }
+  devices._index = (devices._index || 0) + 1;
+
+  return devices[devices._index];
+};
+
+module.exports.store = { Devices: Devices };
 module.exports.create = function (copts) {
+  var deviceLists = {};
 
   function onWsConnection(ws) {
 		var location = url.parse(ws.upgradeReq.url, true);
-    //var token = jwt.decode(location.query.access_token);
+    var authn = (ws.upgradeReq.headers.authorization||'').split(/\s+/);
+    var jwtoken;
     var token;
 
     try {
-      token = jwt.verify(location.query.access_token, secret);
+      if (authn[0]) {
+        if ('basic' === authn[0].toLowerCase()) {
+          authn = new Buffer(authn[1], 'base64').toString('ascii').split(':');
+        }
+        /*
+        if (-1 !== [ 'bearer', 'jwk' ].indexOf(authn[0].toLowerCase())) {
+          jwtoken = authn[1];
+        }
+        */
+      }
+      jwtoken = authn[1] || location.query.access_token;
+    } catch(e) {
+      jwtoken = null;
+    }
+
+    try {
+      token = jwt.verify(jwtoken, copts.secret);
     } catch(e) {
       token = null;
     }
@@ -36,6 +97,8 @@ module.exports.create = function (copts) {
       return;
     }
 
+    //console.log('[wstunneld.js] DEBUG', token);
+
     if (!Array.isArray(token.domains)) {
       if ('string' === typeof token.name) {
         token.domains = [ token.name ];
@@ -50,13 +113,13 @@ module.exports.create = function (copts) {
 
     var remote;
     token.domains.some(function (domainname) {
-      remote = remotes[domainname];
+      remote = Devices.next(deviceLists, domainname);
       return remote;
     });
     remote = remote || {};
     token.domains.forEach(function (domainname) {
       console.log('domainname', domainname);
-      remotes[domainname] = remote;
+      Devices.replace(deviceLists, domainname, remote);
     });
     var handlers = {
       onmessage: function (opts) {
@@ -100,7 +163,8 @@ module.exports.create = function (copts) {
     };
     // TODO allow more than one remote per servername
     remote.ws = ws;
-    remote.servername = token.domains.join(',');
+    remote.servername = (token.device && token.device.hostname) || token.domains.join(',');
+    remote.deviceId = (token.device && token.device.id) || null;
     remote.id = packer.socketToId(ws.upgradeReq.socket);
     console.log("remote.id", remote.id);
     // TODO allow tls to be decrypted by server if client is actually a browser
@@ -110,12 +174,14 @@ module.exports.create = function (copts) {
     remote.clients = {};
     remote.handle = { address: null, handle: null };
     remote.unpacker = packer.create(handlers);
-    ws.on('message', function (chunk) {
+    remote.domains = token.domains;
+
+    function forwardMessage(chunk) {
       console.log('message from home cloud to tunneler to browser', chunk.byteLength);
       //console.log(chunk.toString());
       remote.unpacker.fns.addChunk(chunk);
-    });
-    ws.on('close', function () {
+    }
+    function hangup() {
       // the remote will handle closing its local connections
       Object.keys(remote.clients).forEach(function (cid) {
         try {
@@ -124,46 +190,23 @@ module.exports.create = function (copts) {
           // ignore
         }
       });
-    });
-    ws.on('error', function () {
-      // ignore
-      // the remote will retry if it wants to
-    });
+      token.domains.forEach(function (domainname) {
+        Devices.remove(deviceLists, domainname, remote);
+      });
+    }
+    function die() {
+      hangup();
+    }
 
-    //store.set(token.name, remote.handle);
+    ws.on('message', forwardMessage);
+    ws.on('close', hangup);
+    ws.on('error', die);
 	}
-
-  function connectHttp(servername, socket) {
-    console.log("connectHttp('" + servername + "', socket)");
-    socket.__my_servername = servername;
-    redirectServer.emit('connection', socket);
-  }
-
-  function connectHttps(servername, socket) {
-    // none of these methods work:
-    // httpsServer.emit('connection', socket);  // this didn't work
-    // tlsServer.emit('connection', socket);    // this didn't work either
-    //console.log('chunkLen', firstChunk.byteLength);
-
-    var myDuplex = packer.Stream.create(socket);
-
-    console.log('connectHttps servername', servername);
-    tls3000.emit('connection', myDuplex);
-
-    socket.on('data', function (chunk) {
-      console.log('[' + Date.now() + '] socket data', chunk.byteLength);
-      myDuplex.push(chunk);
-    });
-    socket.on('error', function (err) {
-      console.error('[error] connectHttps TODO close');
-      console.error(err);
-    });
-  }
 
   function pipeWs(servername, service, browser, remote) {
     console.log('pipeWs');
 
-    //var remote = remotes[servername];
+    //var remote = deviceLists[servername];
     var ws = remote.ws;
     //var address = packer.socketToAddr(ws.upgradeReq.socket);
     var baddress = packer.socketToAddr(browser);
@@ -259,14 +302,22 @@ module.exports.create = function (copts) {
       var m;
 
       function tryTls() {
-        if (!servername || (-1 !== selfnames.indexOf(servername)) || !remotes[servername]) {
-          console.log('this is a server or an unknown');
-          connectHttps(servername, browser);
+        var nextDevice;
+
+        if (-1 !== copts.servernames.indexOf(servername)) {
+          copts.httpsTunnel(servername, browser);
           return;
         }
 
-        console.log("pipeWs(servername, service, socket, remotes['" + servername + "'])");
-        pipeWs(servername, service, browser, remotes[servername]);
+        nextDevice = Devices.next(deviceLists, servername);
+        if (!servername || !nextDevice) {
+          console.log('this is a server or an unknown');
+          copts.httpsInvalid(servername, browser);
+          return;
+        }
+
+        console.log("pipeWs(servername, service, socket, deviceLists['" + servername + "'])");
+        pipeWs(servername, service, browser, nextDevice);
       }
 
       // https://github.com/mscdex/httpolyglot/issues/3#issuecomment-173680155
@@ -286,17 +337,17 @@ module.exports.create = function (copts) {
         console.log('servername', servername);
         if (/HTTP\//i.test(str)) {
           service = 'http';
-          if (/^\/\.well-known\/acme-challenge\//.test(str)) {
+          if (/well-known/.test(str)) {
             // HTTP
-            if (remotes[servername]) {
-              pipeWs(servername, service, browser, remotes[servername]);
+            if (Devices.exist(deviceLists, servername)) {
+              pipeWs(servername, service, browser, Devices.next(deviceLists, servername));
               return;
             }
-            connectHttp(servername, browser);
+            copts.handleInsecureHttp(servername, browser);
           }
           else {
             // redirect to https
-            connectHttp(servername, browser);
+            copts.handleInsecureHttp(servername, browser);
           }
           return;
         }
@@ -316,37 +367,5 @@ module.exports.create = function (copts) {
 
   }
 
-  var tlsOpts = copts.tlsOptions;
-  //var store = copts.store;
-
-  var remotes = {};
-  var selfnames = copts.servernames;
-  var secret = copts.secret;
-  var redirectHttps = require('redirect-https')();
-
-  var redirectServer = http.createServer(function (req, res) {
-    res.setHeader('Connection', 'close');
-    redirectHttps(req, res);
-  });
-  var httpServer = http.createServer(function (req, res) {
-    console.log('req.socket.encrypted', req.socket.encrypted);
-    res.end('Hello, World!');
-  });
-  var tls3000 = tls.createServer(tlsOpts, function (tlsSocket) {
-    console.log('tls connection');
-    // things get a little messed up here
-    httpServer.emit('connection', tlsSocket);
-  });
-  var wss = new WebSocketServer({ server: httpServer });
-
-	wss.on('connection', onWsConnection);
-
-  copts.ports.forEach(function (port) {
-    var tcp3000 = net.createServer();
-    tcp3000.listen(port, function () {
-      console.log('listening on ' + port);
-    });
-    tcp3000.on('connection', onTcpConnection);
-  });
-
+  return { tcp: onTcpConnection, ws: onWsConnection };
 };
