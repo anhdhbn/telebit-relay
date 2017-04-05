@@ -3,11 +3,17 @@
 var http = require('http');
 var tls = require('tls');
 var packerStream = require('tunnel-packer').Stream;
+var redirectHttps = require('redirect-https')();
 
 module.exports.create = function (program) {
   program.httpServer = http.createServer(function (req, res) {
     console.log('req.socket.encrypted', req.socket.encrypted);
     res.end("Look! I can do a thing!");
+  });
+
+  program.httpInsecureServer = http.createServer(function (req, res) {
+    res.setHeader('Connection', 'close');
+    redirectHttps(req, res);
   });
   program.httpTunnelServer = http.createServer(function (req, res) {
     console.log('req.socket.encrypted', req.socket.encrypted);

@@ -42,13 +42,15 @@ Devices.exist = function (store, servername) {
 };
 Devices.next = function (store, servername) {
   var devices = Devices.list(store, servername);
+  var device;
 
   if (devices._index >= devices.length) {
     devices._index = 0;
   }
+  device = devices[devices._index || 0];
   devices._index = (devices._index || 0) + 1;
 
-  return devices[devices._index];
+  return device;
 };
 
 module.exports.store = { Devices: Devices };
@@ -337,6 +339,8 @@ module.exports.create = function (copts) {
         console.log('servername', servername);
         if (/HTTP\//i.test(str)) {
           service = 'http';
+          // TODO disallow http entirely
+          // /^\/\.well-known\/acme-challenge\//.test(str)
           if (/well-known/.test(str)) {
             // HTTP
             if (Devices.exist(deviceLists, servername)) {
