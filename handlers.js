@@ -8,12 +8,16 @@ var redirectHttps = require('redirect-https')();
 module.exports.create = function (program) {
   var tunnelAdminTlsOpts = {};
 
-  // Probably a reverse proxy on an internal network
-  program.httpServer = http.createServer(program.greenlock.middleware(function (req, res) {
+  // Probably a reverse proxy on an internal network (or ACME challenge)
+  function notFound(req, res) {
     console.log('req.socket.encrypted', req.socket.encrypted);
     res.statusCode = 404;
     res.end("File not found.\n");
-  }));
+  }
+  program.httpServer = http.createServer(
+    program.greenlock && program.greenlock.middleware(notFound)
+    || notFound
+  );
   program.handleHttp = function (servername, socket) {
     console.log("handleHttp('" + servername + "', socket)");
     socket.__my_servername = servername;
@@ -21,10 +25,14 @@ module.exports.create = function (program) {
   };
 
   // Probably something that needs to be redirected to https
-  program.httpInsecureServer = http.createServer(program.greenlock.middleware(function (req, res) {
+  function redirectHttpsAndClose(req, res) {
     res.setHeader('Connection', 'close');
     redirectHttps(req, res);
-  }));
+  }
+  program.httpInsecureServer = http.createServer(
+    program.greenlock && program.greenlock.middleware(redirectHttpsAndClose)
+    || redirectHttpsAndClose
+  );
   program.handleInsecureHttp = function (servername, socket) {
     console.log("handleInsecureHttp('" + servername + "', socket)");
     socket.__my_servername = servername;

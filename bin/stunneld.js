@@ -164,30 +164,31 @@ if (!program.email || !program.agreeTos) {
   console.error("You didn't specify --email <EMAIL> and --agree-tos");
   console.error("(required for ACME / Let's Encrypt / Greenlock TLS/SSL certs)");
   console.error("");
-  process.exit(1);
 }
-program.greenlock = greenlock.create({
+else {
+  program.greenlock = greenlock.create({
 
-  //server: 'staging'
-  server: 'https://acme-v01.api.letsencrypt.org/directory'
+    //server: 'staging'
+    server: 'https://acme-v01.api.letsencrypt.org/directory'
 
-, challenges: {
-		// TODO dns-01
-		'http-01': require('le-challenge-fs').create({ webrootPath: '/tmp/acme-challenges' })
-	}
+  , challenges: {
+      // TODO dns-01
+      'http-01': require('le-challenge-fs').create({ webrootPath: '/tmp/acme-challenges' })
+    }
 
-, store: require('le-store-certbot').create({ webrootPath: '/tmp/acme-challenges' })
+  , store: require('le-store-certbot').create({ webrootPath: '/tmp/acme-challenges' })
 
-, email: program.email
+  , email: program.email
 
-, agreeTos: program.agreeTos
+  , agreeTos: program.agreeTos
 
-, approveDomains: approveDomains
+  , approveDomains: approveDomains
 
-//, approvedDomains: program.servernames
+  //, approvedDomains: program.servernames
 
-});
-//program.tlsOptions.SNICallback = program.greenlock.SNICallback;
+  });
+}
+//program.tlsOptions.SNICallback = program.greenlock.httpsOptions.SNICallback;
 /*
 program.middleware = program.greenlock.middleware(function (req, res) {
   res.end('Hello, World!');
