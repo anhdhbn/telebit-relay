@@ -136,17 +136,10 @@ if (!program.secret) {
 
 // TODO letsencrypt
 program.tlsOptions = require('localhost.daplie.com-certificates').merge({});
-/*
-program.tlsOptions.SNICallback = program.greenlock.SNICallback;
-program.middleware = program.greenlock.middleware(function (req, res) {
-  res.end('Hello, World!');
-});
-*/
-/*
+
 function approveDomains(opts, certs, cb) {
   // This is where you check your database and associated
   // email addresses with domains and agreements and such
-
 
   // The domains being approved for the first time are listed in opts.domains
   // Certs being renewed are listed in certs.altnames
@@ -154,8 +147,10 @@ function approveDomains(opts, certs, cb) {
     opts.domains = certs.altnames;
   }
   else {
-    opts.email = program.email;
-    opts.agreeTos = program.agreeTos;
+    if (-1 !== program.servernames.indexOf(opts.domain)) {
+      opts.email = program.email;
+      opts.agreeTos = program.agreeTos;
+    }
   }
 
   // NOTE: you can also change other options such as `challengeType` and `challenge`
@@ -165,10 +160,16 @@ function approveDomains(opts, certs, cb) {
   cb(null, { options: opts, certs: certs });
 }
 
+if (!program.email || !program.agreeTos) {
+  console.error("You didn't specify --email <EMAIL> and --agree-tos");
+  console.error("(required for ACME / Let's Encrypt / Greenlock TLS/SSL certs)");
+  console.error("");
+  process.exit(1);
+}
 program.greenlock = greenlock.create({
 
-  server: 'staging'
-  // server: 'https://acme-v01.api.letsencrypt.org/directory'
+  //server: 'staging'
+  server: 'https://acme-v01.api.letsencrypt.org/directory'
 
 , challenges: {
 		// TODO dns-01
@@ -181,8 +182,15 @@ program.greenlock = greenlock.create({
 
 , agreeTos: program.agreeTos
 
-, approveDomains: program.servernames // approveDomains
+, approveDomains: approveDomains
 
+//, approvedDomains: program.servernames
+
+});
+//program.tlsOptions.SNICallback = program.greenlock.SNICallback;
+/*
+program.middleware = program.greenlock.middleware(function (req, res) {
+  res.end('Hello, World!');
 });
 */
 

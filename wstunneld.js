@@ -307,13 +307,20 @@ module.exports.create = function (copts) {
         var nextDevice;
 
         if (-1 !== copts.servernames.indexOf(servername)) {
+          console.log("Lock and load, admin interface time!");
           copts.httpsTunnel(servername, browser);
           return;
         }
 
+        if (!servername) {
+          console.log("No SNI was given, so there's nothing we can do here");
+          copts.httpsInvalid(servername, browser);
+          return;
+        }
+
         nextDevice = Devices.next(deviceLists, servername);
-        if (!servername || !nextDevice) {
-          console.log('this is a server or an unknown');
+        if (!nextDevice) {
+          console.log("No devices match the given servername");
           copts.httpsInvalid(servername, browser);
           return;
         }
@@ -347,7 +354,7 @@ module.exports.create = function (copts) {
               pipeWs(servername, service, browser, Devices.next(deviceLists, servername));
               return;
             }
-            copts.handleInsecureHttp(servername, browser);
+            copts.handleHttp(servername, browser);
           }
           else {
             // redirect to https
