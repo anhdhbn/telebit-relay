@@ -6,33 +6,21 @@ var jwt = require('jsonwebtoken');
 var packer = require('tunnel-packer');
 
 var Devices = {};
-Devices.replace = function (store, servername, newDevice) {
+Devices.add = function (store, servername, newDevice) {
   var devices = Devices.list(store, servername);
-  var oldDevice;
-  if (!devices.some(function (device, i) {
-    if ((device.deviceId && device.deviceId === newDevice.deviceId)
-        || (device.servername && device.servername === newDevice.servername)) {
-      oldDevice = devices[i];
-      devices[i] = newDevice;
-      return true;
-    }
-  })) {
-    devices.push(newDevice);
-    store[servername] = devices;
-  }
-  return oldDevice;
+  devices.push(newDevice);
+  store[servername] = devices;
 };
-Devices.remove = function (store, servername, newDevice) {
+Devices.remove = function (store, servername, device) {
   var devices = Devices.list(store, servername);
-  var oldDevice;
-  devices.some(function (device, i) {
-    if ((device.deviceId && device.deviceId === newDevice.deviceId)
-        || (device.servername && device.servername === newDevice.servername)) {
-      oldDevice = devices.splice(i, 1);
-      return true;
-    }
-  });
-  return oldDevice;
+  var index = devices.indexOf(device);
+
+  if (index < 0) {
+    var id = device.deviceId || device.servername || device.id;
+    console.warn('attempted to remove non-present device', id, 'from', servername);
+    return null;
+  }
+  return devices.splice(index, 1)[0];
 };
 Devices.list = function (store, servername) {
   return store[servername] || [];
@@ -168,14 +156,10 @@ module.exports.create = function (copts) {
     remote.unpacker = packer.create(handlers);
 
     // Now that we have created our remote object we need to store it in the deviceList for
-    // each domainname we are supposed to be handling. If any previously existing remotes
-    // have the same identifiers then we replace that remote and close its websocket.
+    // each domainname we are supposed to be handling.
     token.domains.forEach(function (domainname) {
       console.log('domainname', domainname);
-      var prev = Devices.replace(deviceLists, domainname, remote);
-      if (prev) {
-        prev.ws.close(1001, 'connection replaced');
-      }
+      Devices.add(deviceLists, domainname, remote);
     });
 
     function forwardMessage(chunk) {
