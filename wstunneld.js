@@ -58,7 +58,7 @@ module.exports.create = function (copts) {
   var deviceLists = {};
 
   function onWsConnection(ws) {
-		var location = url.parse(ws.upgradeReq.url, true);
+    var location = url.parse(ws.upgradeReq.url, true);
     var authn = (ws.upgradeReq.headers.authorization||'').split(/\s+/);
     var jwtoken;
     var token;
@@ -113,16 +113,18 @@ module.exports.create = function (copts) {
       return;
     }
 
-    var remote;
-    token.domains.some(function (domainname) {
-      remote = Devices.next(deviceLists, domainname);
-      return remote;
-    });
-    remote = remote || {};
-    token.domains.forEach(function (domainname) {
-      console.log('domainname', domainname);
-      Devices.replace(deviceLists, domainname, remote);
-    });
+    var remote = {};
+    remote.ws = ws;
+    remote.servername = (token.device && token.device.hostname) || token.domains.join(',');
+    remote.deviceId = (token.device && token.device.id) || null;
+    remote.id = packer.socketToId(ws.upgradeReq.socket);
+    console.log("remote.id", remote.id);
+    remote.domains = token.domains;
+    remote.clients = {};
+    // TODO allow tls to be decrypted by server if client is actually a browser
+    // and we haven't implemented tls in the browser yet
+    // remote.decrypt = token.decrypt;
+
     var handlers = {
       onmessage: function (opts) {
         // opts.data
@@ -163,20 +165,18 @@ module.exports.create = function (copts) {
         }
       }
     };
-    // TODO allow more than one remote per servername
-    remote.ws = ws;
-    remote.servername = (token.device && token.device.hostname) || token.domains.join(',');
-    remote.deviceId = (token.device && token.device.id) || null;
-    remote.id = packer.socketToId(ws.upgradeReq.socket);
-    console.log("remote.id", remote.id);
-    // TODO allow tls to be decrypted by server if client is actually a browser
-    // and we haven't implemented tls in the browser yet
-    remote.decrypt = token.decrypt;
-    // TODO how to allow a child process to communicate with this one?
-    remote.clients = {};
-    remote.handle = { address: null, handle: null };
     remote.unpacker = packer.create(handlers);
-    remote.domains = token.domains;
+
+    // Now that we have created our remote object we need to store it in the deviceList for
+    // each domainname we are supposed to be handling. If any previously existing remotes
+    // have the same identifiers then we replace that remote and close its websocket.
+    token.domains.forEach(function (domainname) {
+      console.log('domainname', domainname);
+      var prev = Devices.replace(deviceLists, domainname, remote);
+      if (prev) {
+        prev.ws.close(1001, 'connection replaced');
+      }
+    });
 
     function forwardMessage(chunk) {
       console.log('message from home cloud to tunneler to browser', chunk.byteLength);
@@ -196,14 +196,11 @@ module.exports.create = function (copts) {
         Devices.remove(deviceLists, domainname, remote);
       });
     }
-    function die() {
-      hangup();
-    }
 
     ws.on('message', forwardMessage);
     ws.on('close', hangup);
-    ws.on('error', die);
-	}
+    ws.on('error', hangup);
+  }
 
   function pipeWs(servername, service, browser, remote) {
     console.log('pipeWs');
@@ -304,8 +301,6 @@ module.exports.create = function (copts) {
       var m;
 
       function tryTls() {
-        var nextDevice;
-
         if (-1 !== copts.servernames.indexOf(servername)) {
           console.log("Lock and load, admin interface time!");
           copts.httpsTunnel(servername, browser);
@@ -318,7 +313,7 @@ module.exports.create = function (copts) {
           return;
         }
 
-        nextDevice = Devices.next(deviceLists, servername);
+        var nextDevice = Devices.next(deviceLists, servername);
         if (!nextDevice) {
           console.log("No devices match the given servername");
           copts.httpsInvalid(servername, browser);
