@@ -44,6 +44,8 @@ Devices.next = function (store, servername) {
 module.exports.store = { Devices: Devices };
 module.exports.create = function (copts) {
   var deviceLists = {};
+  var activityTimeout = copts.activityTimeout || 2*60*1000;
+  var pongTimeout = copts.pongTimeout || 10*1000;
 
   function onWsConnection(ws) {
     var location = url.parse(ws.upgradeReq.url, true);
@@ -162,12 +164,56 @@ module.exports.create = function (copts) {
       Devices.add(deviceLists, domainname, remote);
     });
 
-    function forwardMessage(chunk) {
+    var lastActivity = Date.now();
+    var timeoutId;
+    function refreshTimeout() {
+      lastActivity = Date.now();
+    }
+    function checkTimeout() {
+      // Determine how long the connection has been "silent", ie no activity.
+      var silent = Date.now() - lastActivity;
+
+      // If we have had activity within the last activityTimeout then all we need to do is
+      // call this function again at the soonest time when the connection could be timed out.
+      if (silent < activityTimeout) {
+        timeoutId = setTimeout(checkTimeout, activityTimeout-silent);
+      }
+
+      // Otherwise we check to see if the pong has also timed out, and if not we send a ping
+      // and call this function again when the pong will have timed out.
+      else if (silent < activityTimeout + pongTimeout) {
+        console.log('pinging', remote.deviceId || remote.servername);
+        try {
+          remote.ws.ping();
+        } catch (err) {
+          console.warn('failed to ping home cloud', remote.deviceId || remote.servername);
+        }
+        timeoutId = setTimeout(checkTimeout, pongTimeout);
+      }
+
+      // Last case means the ping we sent before didn't get a response soon enough, so we
+      // need to close the websocket connection.
+      else {
+        console.log('home cloud', remote.deviceId || remote.servername, 'connection timed out');
+        remote.ws.close(1013, 'connection timeout');
+      }
+    }
+    timeoutId = setTimeout(checkTimeout, activityTimeout);
+
+    // Note that our websocket library automatically handles pong responses on ping requests
+    // before it even emits the event.
+    ws.on('ping', refreshTimeout);
+    ws.on('pong', refreshTimeout);
+    ws.on('message', function forwardMessage(chunk) {
+      refreshTimeout();
       console.log('message from home cloud to tunneler to browser', chunk.byteLength);
       //console.log(chunk.toString());
       remote.unpacker.fns.addChunk(chunk);
-    }
+    });
+
     function hangup() {
+      clearTimeout(timeoutId);
+      console.log('home cloud', remote.deviceId || remote.servername, 'connection closing');
       // the remote will handle closing its local connections
       Object.keys(remote.clients).forEach(function (cid) {
         try {
@@ -181,7 +227,6 @@ module.exports.create = function (copts) {
       });
     }
 
-    ws.on('message', forwardMessage);
     ws.on('close', hangup);
     ws.on('error', hangup);
   }
