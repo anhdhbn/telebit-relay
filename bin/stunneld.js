@@ -101,7 +101,7 @@ if (!program.servernames.length) {
 }
 
 program.ports = Object.keys(portsMap);
-if (!opts.ports.length) {
+if (!program.ports.length) {
   program.ports = [ 80, 443 ];
 }
 
