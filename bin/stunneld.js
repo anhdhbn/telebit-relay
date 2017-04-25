@@ -113,7 +113,7 @@ if (!program.secret) {
 }
 
 // TODO letsencrypt
-program.tlsOptions = require('localhost.daplie.com-certificates').merge({});
+program.tlsOptions = require('localhost.daplie.me-certificates').merge({});
 
 function approveDomains(opts, certs, cb) {
   // This is where you check your database and associated
