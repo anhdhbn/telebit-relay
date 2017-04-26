@@ -2,8 +2,15 @@
 
 var sni = require('sni');
 var url = require('url');
+var PromiseA = require('bluebird');
 var jwt = require('jsonwebtoken');
 var packer = require('tunnel-packer');
+
+function timeoutPromise(duration) {
+  return new PromiseA(function (resolve) {
+    setTimeout(resolve, duration);
+  });
+}
 
 var Devices = {};
 Devices.add = function (store, servername, newDevice) {
@@ -115,44 +122,59 @@ module.exports.create = function (copts) {
     // and we haven't implemented tls in the browser yet
     // remote.decrypt = token.decrypt;
 
+    function closeBrowserConn(cid) {
+      if (!remote.clients[cid]) {
+        return;
+      }
+
+      PromiseA.resolve()
+        .then(function () {
+          remote.clients[cid].end();
+          return timeoutPromise(500);
+        })
+        .then(function () {
+          if (remote.clients[cid]) {
+            console.warn(cid, 'browser connection still present after calling `end`');
+            remote.clients[cid].destroy();
+            return timeoutPromise(500);
+          }
+        })
+        .then(function () {
+          if (remote.clients[cid]) {
+            console.error(cid, 'browser connection still present after calling `destroy`');
+            delete remote.clients[cid];
+          }
+        })
+        .catch(function (err) {
+          console.warn('failed to close browser connection', cid, err);
+        })
+        ;
+    }
+
     var handlers = {
       onmessage: function (opts) {
         // opts.data
         var cid = packer.addrToId(opts);
-        var cstream = remote.clients[cid];
+        var browserConn = remote.clients[cid];
 
         console.log("remote '" + remote.servername + " : " + remote.id + "' has data for '" + cid + "'", opts.data.byteLength);
 
-        if (!cstream) {
+        if (!browserConn) {
           remote.ws.send(packer.pack(opts, null, 'error'));
           return;
         }
 
-        cstream.browser.write(opts.data);
+        browserConn.write(opts.data);
       }
     , onend: function (opts) {
         var cid = packer.addrToId(opts);
         console.log('[TunnelEnd]', cid);
-        handlers._onend(cid);
+        closeBrowserConn(cid);
       }
     , onerror: function (opts) {
         var cid = packer.addrToId(opts);
         console.log('[TunnelError]', cid);
-        handlers._onend(cid);
-      }
-    , _onend: function (cid) {
-        var c = remote.clients[cid];
-        delete remote.clients[cid];
-        try {
-          c.browser.end();
-        } catch(e) {
-          // ignore
-        }
-        try {
-          c.wrapped.end();
-        } catch(e) {
-          // ignore
-        }
+        closeBrowserConn(cid);
       }
     };
     remote.unpacker = packer.create(handlers);
@@ -214,16 +236,16 @@ module.exports.create = function (copts) {
     function hangup() {
       clearTimeout(timeoutId);
       console.log('home cloud', remote.deviceId || remote.servername, 'connection closing');
-      // the remote will handle closing its local connections
-      Object.keys(remote.clients).forEach(function (cid) {
-        try {
-          remote.clients[cid].browser.end();
-        } catch(e) {
-          // ignore
-        }
-      });
+      // Prevent any more browser connections being sent to this remote, and any existing
+      // connections from trying to send more data across the connection.
       token.domains.forEach(function (domainname) {
         Devices.remove(deviceLists, domainname, remote);
+      });
+      remote.ws = null;
+
+      // Close all of the existing browser connections associated with this websocket connection.
+      Object.keys(remote.clients).forEach(function (cid) {
+        closeBrowserConn(cid);
       });
     }
 
@@ -231,72 +253,35 @@ module.exports.create = function (copts) {
     ws.on('error', hangup);
   }
 
-  function pipeWs(servername, service, browser, remote) {
-    console.log('pipeWs');
+  function pipeWs(servername, service, browserConn, remote) {
+    console.log('[pipeWs] servername:', servername, 'service:', service);
 
-    //var remote = deviceLists[servername];
-    var ws = remote.ws;
-    //var address = packer.socketToAddr(ws.upgradeReq.socket);
-    var baddress = packer.socketToAddr(browser);
-    var cid = packer.addrToId(baddress);
-    console.log('servername:', servername);
-    console.log('service:', service);
-    baddress.service = service;
-    var wrapForRemote = packer.Transform.create({
-      id: cid
-    //, remoteId: remote.id
-    , address: baddress
-    , servername: servername
-    , service: service
-    });
-    console.log('home-cloud is', packer.socketToId(remote.ws.upgradeReq.socket));
-    console.log('browser is', cid);
-    var bstream = remote.clients[cid] = {
-      wrapped: browser.pipe(wrapForRemote)
-    , browser: browser
-    , address: baddress
-    };
-    //var bstream = remote.clients[cid] = wrapForRemote.pipe(browser);
-    bstream.wrapped.on('data', function (pchunk) {
-      // var chunk = socket.read();
-      console.log('[bstream] data from browser to tunneler', pchunk.byteLength);
-      //console.log(JSON.stringify(pchunk.toString()));
-      try {
-        ws.send(pchunk, { binary: true });
-      } catch(e) {
+    var browserAddr = packer.socketToAddr(browserConn);
+    browserAddr.service = service;
+    var cid = packer.addrToId(browserAddr);
+    console.log('[pipeWs] browser is', cid, 'home-cloud is', packer.socketToId(remote.ws.upgradeReq.socket));
+
+    function sendWs(data, serviceOverride) {
+      if (remote.ws) {
         try {
-          bstream.browser.end();
-        } catch(e) {
-          // ignore
+          remote.ws.send(packer.pack(browserAddr, data, serviceOverride), { binary: true });
+        } catch (err) {
+          console.warn('[pipeWs] error sending websocket message', err);
         }
       }
+    }
+
+    remote.clients[cid] = browserConn;
+    browserConn.on('data', function (chunk) {
+      console.log('[pipeWs] data from browser to tunneler', chunk.byteLength);
+      sendWs(chunk);
     });
-    bstream.wrapped.on('error', function (err) {
-      console.error('[error] bstream.wrapped.error');
-      console.error(err);
-      try {
-        ws.send(packer.pack(baddress, null, 'error'), { binary: true });
-      } catch(e) {
-        // ignore
-      }
-      try {
-        bstream.browser.end();
-      } catch(e) {
-        // ignore
-      }
-      delete remote.clients[cid];
+    browserConn.on('error', function (err) {
+      console.warn('[pipeWs] browser connection error', err);
     });
-    bstream.wrapped.on('end', function () {
-      try {
-        ws.send(packer.pack(baddress, null, 'end'), { binary: true });
-      } catch(e) {
-        // ignore
-      }
-      try {
-        bstream.browser.end();
-      } catch(e) {
-        // ignore
-      }
+    browserConn.on('close', function (hadErr) {
+      console.log('[pipeWs] browser connection closing');
+      sendWs(null, hadErr ? 'error': 'end');
       delete remote.clients[cid];
     });
   }

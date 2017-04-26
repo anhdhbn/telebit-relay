@@ -46,6 +46,7 @@
   },
   "homepage": "https://github.com/Daplie/node-tunnel-server#readme",
   "dependencies": {
+    "bluebird": "^3.5.0",
     "cluster-store": "^2.0.4",
     "commander": "^2.9.0",
     "greenlock": "^2.1.12",
