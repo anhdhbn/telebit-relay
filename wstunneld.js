@@ -23,8 +23,7 @@ Devices.remove = function (store, servername, device) {
   var index = devices.indexOf(device);
 
   if (index < 0) {
-    var id = device.deviceId || device.servername || device.id;
-    console.warn('attempted to remove non-present device', id, 'from', servername);
+    console.warn('attempted to remove non-present device', device.deviceId, 'from', servername);
     return null;
   }
   return devices.splice(index, 1)[0];
@@ -55,75 +54,26 @@ module.exports.create = function (copts) {
   var pongTimeout = copts.pongTimeout || 10*1000;
 
   function onWsConnection(ws) {
-    var location = url.parse(ws.upgradeReq.url, true);
-    var authn = (ws.upgradeReq.headers.authorization||'').split(/\s+/);
-    var jwtoken;
-    var token;
+    var socketId = packer.socketToId(ws.upgradeReq.socket);
+    var remotes = {};
 
-    try {
-      if (authn[0]) {
-        if ('basic' === authn[0].toLowerCase()) {
-          authn = new Buffer(authn[1], 'base64').toString('ascii').split(':');
-        }
-        /*
-        if (-1 !== [ 'bearer', 'jwk' ].indexOf(authn[0].toLowerCase())) {
-          jwtoken = authn[1];
-        }
-        */
-      }
-      jwtoken = authn[1] || location.query.access_token;
-    } catch(e) {
-      jwtoken = null;
+    function logName() {
+      var result = Object.keys(remotes).map(function (jwtoken) {
+        return remotes[jwtoken].deviceId;
+      }).join(';');
+
+      return result || socketId;
     }
-
-    try {
-      token = jwt.verify(jwtoken, copts.secret);
-    } catch(e) {
-      token = null;
-    }
-
-    /*
-    if (!token || !token.name) {
-      console.log('location, token');
-      console.log(location.query.access_token);
-      console.log(token);
-    }
-    */
-
-    if (!token) {
-      ws.send(JSON.stringify({ error: { message: "invalid access token", code: "E_INVALID_TOKEN" } }));
-      ws.close();
-      return;
-    }
-
-    //console.log('[wstunneld.js] DEBUG', token);
-
-    if (!Array.isArray(token.domains)) {
-      if ('string' === typeof token.name) {
-        token.domains = [ token.name ];
-      }
-    }
-
-    if (!Array.isArray(token.domains)) {
-      ws.send(JSON.stringify({ error: { message: "invalid server name", code: "E_INVALID_NAME" } }));
-      ws.close();
-      return;
-    }
-
-    var remote = {};
-    remote.ws = ws;
-    remote.servername = (token.device && token.device.hostname) || token.domains.join(',');
-    remote.deviceId = (token.device && token.device.id) || null;
-    remote.id = packer.socketToId(ws.upgradeReq.socket);
-    console.log("remote.id", remote.id);
-    remote.domains = token.domains;
-    remote.clients = {};
-    // TODO allow tls to be decrypted by server if client is actually a browser
-    // and we haven't implemented tls in the browser yet
-    // remote.decrypt = token.decrypt;
 
     function closeBrowserConn(cid) {
-      if (!remote.clients[cid]) {
+      var remote;
+      Object.keys(remotes).some(function (jwtoken) {
+        if (remotes[jwtoken].clients[cid]) {
+          remote = remotes[jwtoken];
+          return true;
+        }
+      });
+      if (!remote) {
         return;
       }
 
@@ -151,20 +101,110 @@ module.exports.create = function (copts) {
         ;
     }
 
+    function addToken(jwtoken) {
+      if (remotes[jwtoken]) {
+        ws.send(JSON.stringify({ error: { message: "token sent multiple times", code: "E_TOKEN_REPEAT" } }));
+        return false;
+      }
+
+      var token;
+      try {
+        token = jwt.verify(jwtoken, copts.secret);
+      } catch (e) {
+        token = null;
+      }
+
+      if (!token) {
+        ws.send(JSON.stringify({ error: { message: "invalid access token", code: "E_INVALID_TOKEN" } }));
+        return false;
+      }
+
+      if (!Array.isArray(token.domains)) {
+        if ('string' === typeof token.name) {
+          token.domains = [ token.name ];
+        }
+      }
+
+      if (!Array.isArray(token.domains)) {
+        ws.send(JSON.stringify({ error: { message: "invalid server name", code: "E_INVALID_NAME" } }));
+        return false;
+      }
+      if (token.domains.some(function (name) { return typeof name !== 'string'; })) {
+        ws.send(JSON.stringify({ error: { message: "invalid server name", code: "E_INVALID_NAME" } }));
+        return false;
+      }
+
+      // Add the custom properties we need to manage this remote, then add it to all the relevant
+      // domains and the list of all this websocket's remotes.
+      token.deviceId = (token.device && (token.device.id || token.device.hostname)) || token.domains.join(',');
+      token.ws = ws;
+      token.clients = {};
+
+      token.domains.forEach(function (domainname) {
+        console.log('domainname', domainname);
+        Devices.add(deviceLists, domainname, token);
+      });
+      remotes[jwtoken] = token;
+      console.log("added token '" + token.deviceId + "' to websocket", socketId);
+      return true;
+    }
+
+    function removeToken(jwtoken) {
+      var remote = remotes[jwtoken];
+      if (!remote) {
+        return false;
+      }
+
+      // Prevent any more browser connections being sent to this remote, and any existing
+      // connections from trying to send more data across the connection.
+      remote.domains.forEach(function (domainname) {
+        Devices.remove(deviceLists, domainname, remote);
+      });
+      remote.ws = null;
+
+      // Close all of the existing browser connections associated with this websocket connection.
+      Object.keys(remote.clients).forEach(function (cid) {
+        closeBrowserConn(cid);
+      });
+      delete remotes[jwtoken];
+      console.log("removed token '" + remote.deviceId + "' from websocket", socketId);
+    }
+
+    var firstToken;
+    var authn = (ws.upgradeReq.headers.authorization||'').split(/\s+/);
+    if (authn[0] && 'basic' === authn[0].toLowerCase()) {
+      try {
+        authn = new Buffer(authn[1], 'base64').toString('ascii').split(':');
+        firstToken = authn[1];
+      } catch (err) { }
+    }
+    if (!firstToken) {
+      firstToken = url.parse(ws.upgradeReq.url, true).query.access_token;
+    }
+    if (firstToken && !addToken(firstToken)) {
+      ws.close();
+      return;
+    }
+
     var handlers = {
       onmessage: function (opts) {
-        // opts.data
         var cid = packer.addrToId(opts);
-        var browserConn = remote.clients[cid];
+        console.log("remote '" + logName() + "' has data for '" + cid + "'", opts.data.byteLength);
 
-        console.log("remote '" + remote.servername + " : " + remote.id + "' has data for '" + cid + "'", opts.data.byteLength);
+        var browserConn;
+        Object.keys(remotes).some(function (jwtoken) {
+          if (remotes[jwtoken].clients[cid]) {
+            browserConn = remotes[jwtoken].clients[cid];
+            return true;
+          }
+        });
 
-        if (!browserConn) {
-          remote.ws.send(packer.pack(opts, null, 'error'));
-          return;
+        if (browserConn) {
+          browserConn.write(opts.data);
         }
-
-        browserConn.write(opts.data);
+        else {
+          ws.send(packer.pack(opts, null, 'error'));
+        }
       }
     , onend: function (opts) {
         var cid = packer.addrToId(opts);
@@ -177,14 +217,7 @@ module.exports.create = function (copts) {
         closeBrowserConn(cid);
       }
     };
-    remote.unpacker = packer.create(handlers);
-
-    // Now that we have created our remote object we need to store it in the deviceList for
-    // each domainname we are supposed to be handling.
-    token.domains.forEach(function (domainname) {
-      console.log('domainname', domainname);
-      Devices.add(deviceLists, domainname, remote);
-    });
+    var unpacker = packer.create(handlers);
 
     var lastActivity = Date.now();
     var timeoutId;
@@ -204,11 +237,11 @@ module.exports.create = function (copts) {
       // Otherwise we check to see if the pong has also timed out, and if not we send a ping
       // and call this function again when the pong will have timed out.
       else if (silent < activityTimeout + pongTimeout) {
-        console.log('pinging', remote.deviceId || remote.servername);
+        console.log('pinging', logName());
         try {
-          remote.ws.ping();
+          ws.ping();
         } catch (err) {
-          console.warn('failed to ping home cloud', remote.deviceId || remote.servername);
+          console.warn('failed to ping home cloud', logName());
         }
         timeoutId = setTimeout(checkTimeout, pongTimeout);
       }
@@ -216,8 +249,8 @@ module.exports.create = function (copts) {
       // Last case means the ping we sent before didn't get a response soon enough, so we
       // need to close the websocket connection.
       else {
-        console.log('home cloud', remote.deviceId || remote.servername, 'connection timed out');
-        remote.ws.close(1013, 'connection timeout');
+        console.log('home cloud', logName(), 'connection timed out');
+        ws.close(1013, 'connection timeout');
       }
     }
     timeoutId = setTimeout(checkTimeout, activityTimeout);
@@ -230,22 +263,14 @@ module.exports.create = function (copts) {
       refreshTimeout();
       console.log('message from home cloud to tunneler to browser', chunk.byteLength);
       //console.log(chunk.toString());
-      remote.unpacker.fns.addChunk(chunk);
+      unpacker.fns.addChunk(chunk);
     });
 
     function hangup() {
       clearTimeout(timeoutId);
-      console.log('home cloud', remote.deviceId || remote.servername, 'connection closing');
-      // Prevent any more browser connections being sent to this remote, and any existing
-      // connections from trying to send more data across the connection.
-      token.domains.forEach(function (domainname) {
-        Devices.remove(deviceLists, domainname, remote);
-      });
-      remote.ws = null;
-
-      // Close all of the existing browser connections associated with this websocket connection.
-      Object.keys(remote.clients).forEach(function (cid) {
-        closeBrowserConn(cid);
+      console.log('home cloud', logName(), 'connection closing');
+      Object.keys(remotes).forEach(function (jwtoken) {
+        removeToken(jwtoken);
       });
     }
 
