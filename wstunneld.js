@@ -103,8 +103,8 @@ module.exports.create = function (copts) {
 
     function addToken(jwtoken) {
       if (remotes[jwtoken]) {
-        ws.send(JSON.stringify({ error: { message: "token sent multiple times", code: "E_TOKEN_REPEAT" } }));
-        return false;
+        // return { message: "token sent multiple times", code: "E_TOKEN_REPEAT" };
+        return null;
       }
 
       var token;
@@ -115,8 +115,7 @@ module.exports.create = function (copts) {
       }
 
       if (!token) {
-        ws.send(JSON.stringify({ error: { message: "invalid access token", code: "E_INVALID_TOKEN" } }));
-        return false;
+        return { message: "invalid access token", code: "E_INVALID_TOKEN" };
       }
 
       if (!Array.isArray(token.domains)) {
@@ -126,12 +125,10 @@ module.exports.create = function (copts) {
       }
 
       if (!Array.isArray(token.domains)) {
-        ws.send(JSON.stringify({ error: { message: "invalid server name", code: "E_INVALID_NAME" } }));
-        return false;
+        return { message: "invalid server name", code: "E_INVALID_NAME" };
       }
       if (token.domains.some(function (name) { return typeof name !== 'string'; })) {
-        ws.send(JSON.stringify({ error: { message: "invalid server name", code: "E_INVALID_NAME" } }));
-        return false;
+        return { message: "invalid server name", code: "E_INVALID_NAME" };
       }
 
       // Add the custom properties we need to manage this remote, then add it to all the relevant
@@ -146,13 +143,13 @@ module.exports.create = function (copts) {
       });
       remotes[jwtoken] = token;
       console.log("added token '" + token.deviceId + "' to websocket", socketId);
-      return true;
+      return null;
     }
 
     function removeToken(jwtoken) {
       var remote = remotes[jwtoken];
       if (!remote) {
-        return false;
+        return { message: 'specified token not present', code: 'E_INVALID_TOKEN'};
       }
 
       // Prevent any more browser connections being sent to this remote, and any existing
@@ -168,6 +165,7 @@ module.exports.create = function (copts) {
       });
       delete remotes[jwtoken];
       console.log("removed token '" + remote.deviceId + "' from websocket", socketId);
+      return null;
     }
 
     var firstToken;
@@ -181,13 +179,52 @@ module.exports.create = function (copts) {
     if (!firstToken) {
       firstToken = url.parse(ws.upgradeReq.url, true).query.access_token;
     }
-    if (firstToken && !addToken(firstToken)) {
-      ws.close();
-      return;
+    if (firstToken) {
+      var err = addToken(firstToken);
+      if (err) {
+        ws.send(JSON.stringify({ error: err }));
+        ws.close();
+        return;
+      }
     }
 
     var handlers = {
-      onmessage: function (opts) {
+      oncontrol: function (opts) {
+        var cmd, err;
+        try {
+          cmd = JSON.parse(opts.data.toString());
+        } catch (err) {}
+        if (!Array.isArray(cmd) || typeof cmd[0] !== 'number') {
+          console.warn('received bad command "' + opts.data.toString() + '"');
+          return;
+        }
+
+        if (cmd[0] < 0) {
+          console.warn('received response to unknown command', cmd);
+          return;
+        }
+
+        if (cmd[1] === 'add_token') {
+          err = addToken(cmd[2]);
+        }
+        else if (cmd[1] === 'delete_token') {
+          if (cmd[2] === '*') {
+            Object.keys(remotes).some(function (jwtoken) {
+              err = removeToken(jwtoken);
+              return err;
+            });
+          }
+          else {
+            err = removeToken(cmd[2]);
+          }
+        }
+        else {
+          err = { message: 'unknown command '+cmd[1], code: 'E_UNKNOWN_COMMAND' };
+        }
+
+        ws.send(packer.pack(null, [-cmd[0], err], 'control'));
+      }
+    , onmessage: function (opts) {
         var cid = packer.addrToId(opts);
         console.log("remote '" + logName() + "' has data for '" + cid + "'", opts.data.byteLength);
 
