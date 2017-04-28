@@ -182,7 +182,7 @@ module.exports.create = function (copts) {
     if (firstToken) {
       var err = addToken(firstToken);
       if (err) {
-        ws.send(JSON.stringify({ error: err }));
+        ws.send(packer.pack(null, [0, err], 'control'));
         ws.close();
         return;
       }
@@ -210,7 +210,9 @@ module.exports.create = function (copts) {
           cmd = JSON.parse(opts.data.toString());
         } catch (err) {}
         if (!Array.isArray(cmd) || typeof cmd[0] !== 'number') {
-          console.warn('received bad command "' + opts.data.toString() + '"');
+          var msg = 'received bad command "' + opts.data.toString() + '"';
+          console.warn(msg, 'from websocket', socketId);
+          ws.send(packer.pack(null, [0, {message: msg, code: 'E_BAD_COMMAND'}], 'control'));
           return;
         }
 
@@ -224,6 +226,11 @@ module.exports.create = function (copts) {
           else {
             console.warn('received response to unknown command', cmd, 'from', socketId);
           }
+          return;
+        }
+
+        if (cmd[0] === 0) {
+          console.warn('received dis-associated error from', socketId, cmd[1]);
           return;
         }
 
