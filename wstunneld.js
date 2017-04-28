@@ -188,7 +188,22 @@ module.exports.create = function (copts) {
       }
     }
 
-    var handlers = {
+    var commandHandlers = {
+      add_token: addToken
+    , delete_token: function (token) {
+        if (token !== '*') {
+          return removeToken(token);
+        }
+        var err;
+        Object.keys(remotes).some(function (jwtoken) {
+          err = removeToken(jwtoken);
+          return err;
+        });
+        return err;
+      }
+    };
+
+    var packerHandlers = {
       oncontrol: function (opts) {
         var cmd, err;
         try {
@@ -200,26 +215,23 @@ module.exports.create = function (copts) {
         }
 
         if (cmd[0] < 0) {
-          console.warn('received response to unknown command', cmd);
+          // We only ever send one command and we send it once, so we just hard coded the ID as 1.
+          if (cmd[0] === -1) {
+            if (cmd[1]) {
+              console.log('received error response to hello from', socketId, cmd[1]);
+            }
+          }
+          else {
+            console.warn('received response to unknown command', cmd, 'from', socketId);
+          }
           return;
         }
 
-        if (cmd[1] === 'add_token') {
-          err = addToken(cmd[2]);
-        }
-        else if (cmd[1] === 'delete_token') {
-          if (cmd[2] === '*') {
-            Object.keys(remotes).some(function (jwtoken) {
-              err = removeToken(jwtoken);
-              return err;
-            });
-          }
-          else {
-            err = removeToken(cmd[2]);
-          }
+        if (commandHandlers[cmd[1]]) {
+          err = commandHandlers[cmd[1]].apply(null, cmd.slice(2));
         }
         else {
-          err = { message: 'unknown command '+cmd[1], code: 'E_UNKNOWN_COMMAND' };
+          err = { message: 'unknown command "'+cmd[1]+'"', code: 'E_UNKNOWN_COMMAND' };
         }
 
         ws.send(packer.pack(null, [-cmd[0], err], 'control'));
@@ -254,7 +266,7 @@ module.exports.create = function (copts) {
         closeBrowserConn(cid);
       }
     };
-    var unpacker = packer.create(handlers);
+    var unpacker = packer.create(packerHandlers);
 
     var lastActivity = Date.now();
     var timeoutId;
@@ -313,6 +325,9 @@ module.exports.create = function (copts) {
 
     ws.on('close', hangup);
     ws.on('error', hangup);
+
+    // We only ever send one command and we send it once, so we just hard code the ID as 1
+    ws.send(packer.pack(null, [1, 'hello', [unpacker._version], Object.keys(commandHandlers)], 'control'));
   }
 
   function pipeWs(servername, service, browserConn, remote) {
