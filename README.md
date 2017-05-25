@@ -27,7 +27,7 @@ Installs as `stunnel.js` with the alias `jstunnel`
 ### Install
 
 ```bash
-npm install -g stunnel
+npm install -g stunneld
 ```
 
 ### Advanced Usage
