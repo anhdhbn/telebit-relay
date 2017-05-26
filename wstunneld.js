@@ -14,12 +14,12 @@ function timeoutPromise(duration) {
 
 var Devices = {};
 Devices.add = function (store, servername, newDevice) {
-  var devices = Devices.list(store, servername);
+  var devices = store[servername] || [];
   devices.push(newDevice);
   store[servername] = devices;
 };
 Devices.remove = function (store, servername, device) {
-  var devices = Devices.list(store, servername);
+  var devices = store[servername] || [];
   var index = devices.indexOf(device);
 
   if (index < 0) {
@@ -29,10 +29,29 @@ Devices.remove = function (store, servername, device) {
   return devices.splice(index, 1)[0];
 };
 Devices.list = function (store, servername) {
-  return store[servername] || [];
+  if (store[servername]) {
+    return store[servername];
+  }
+  // There wasn't an exact match so check any of the wildcard domains, sorted longest
+  // first so the one with the biggest natural match with be found first.
+  var deviceList = [];
+  Object.keys(store).filter(function (pattern) {
+    return pattern[0] === '*';
+  }).sort(function (a, b) {
+    return b.length - a.length;
+  }).some(function (pattern) {
+    var subPiece = pattern.slice(1);
+    if (subPiece === servername.slice(-subPiece.length)) {
+      console.log('"'+servername+'" matches "'+pattern+'"');
+      deviceList = store[pattern];
+      return true;
+    }
+  });
+
+  return deviceList;
 };
 Devices.exist = function (store, servername) {
-  return (store[servername] || []).length;
+  return !!(Devices.list(store, servername).length);
 };
 Devices.next = function (store, servername) {
   var devices = Devices.list(store, servername);
@@ -124,7 +143,7 @@ module.exports.create = function (copts) {
         }
       }
 
-      if (!Array.isArray(token.domains)) {
+      if (!Array.isArray(token.domains) || !token.domains.length) {
         return { message: "invalid server name", code: "E_INVALID_NAME" };
       }
       if (token.domains.some(function (name) { return typeof name !== 'string'; })) {
