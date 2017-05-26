@@ -347,6 +347,7 @@ module.exports.create = function (copts) {
       Object.keys(remotes).forEach(function (jwtoken) {
         removeToken(jwtoken);
       });
+      ws.terminate();
     }
 
     ws.on('close', hangup);
