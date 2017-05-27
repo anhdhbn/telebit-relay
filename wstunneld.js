@@ -36,7 +36,7 @@ Devices.list = function (store, servername) {
   // first so the one with the biggest natural match with be found first.
   var deviceList = [];
   Object.keys(store).filter(function (pattern) {
-    return pattern[0] === '*';
+    return pattern[0] === '*' && store[pattern].length;
   }).sort(function (a, b) {
     return b.length - a.length;
   }).some(function (pattern) {
