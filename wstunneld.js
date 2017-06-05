@@ -29,7 +29,7 @@ Devices.remove = function (store, servername, device) {
   return devices.splice(index, 1)[0];
 };
 Devices.list = function (store, servername) {
-  if (store[servername]) {
+  if (store[servername] && store[servername].length) {
     return store[servername];
   }
   // There wasn't an exact match so check any of the wildcard domains, sorted longest
