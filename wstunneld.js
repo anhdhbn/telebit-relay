@@ -2,31 +2,56 @@
 
 var sni = require('sni');
 var url = require('url');
+var PromiseA = require('bluebird');
 var jwt = require('jsonwebtoken');
 var packer = require('tunnel-packer');
 
+function timeoutPromise(duration) {
+  return new PromiseA(function (resolve) {
+    setTimeout(resolve, duration);
+  });
+}
+
 var Devices = {};
 Devices.add = function (store, servername, newDevice) {
-  var devices = Devices.list(store, servername);
+  var devices = store[servername] || [];
   devices.push(newDevice);
   store[servername] = devices;
 };
 Devices.remove = function (store, servername, device) {
-  var devices = Devices.list(store, servername);
+  var devices = store[servername] || [];
   var index = devices.indexOf(device);
 
   if (index < 0) {
-    var id = device.deviceId || device.servername || device.id;
-    console.warn('attempted to remove non-present device', id, 'from', servername);
+    console.warn('attempted to remove non-present device', device.deviceId, 'from', servername);
     return null;
   }
   return devices.splice(index, 1)[0];
 };
 Devices.list = function (store, servername) {
-  return store[servername] || [];
+  if (store[servername] && store[servername].length) {
+    return store[servername];
+  }
+  // There wasn't an exact match so check any of the wildcard domains, sorted longest
+  // first so the one with the biggest natural match with be found first.
+  var deviceList = [];
+  Object.keys(store).filter(function (pattern) {
+    return pattern[0] === '*' && store[pattern].length;
+  }).sort(function (a, b) {
+    return b.length - a.length;
+  }).some(function (pattern) {
+    var subPiece = pattern.slice(1);
+    if (subPiece === servername.slice(-subPiece.length)) {
+      console.log('"'+servername+'" matches "'+pattern+'"');
+      deviceList = store[pattern];
+      return true;
+    }
+  });
+
+  return deviceList;
 };
 Devices.exist = function (store, servername) {
-  return (store[servername] || []).length;
+  return !!(Devices.list(store, servername).length);
 };
 Devices.next = function (store, servername) {
   var devices = Devices.list(store, servername);
@@ -48,121 +73,226 @@ module.exports.create = function (copts) {
   var pongTimeout = copts.pongTimeout || 10*1000;
 
   function onWsConnection(ws) {
-    var location = url.parse(ws.upgradeReq.url, true);
+    var socketId = packer.socketToId(ws.upgradeReq.socket);
+    var remotes = {};
+
+    function logName() {
+      var result = Object.keys(remotes).map(function (jwtoken) {
+        return remotes[jwtoken].deviceId;
+      }).join(';');
+
+      return result || socketId;
+    }
+
+    function closeBrowserConn(cid) {
+      var remote;
+      Object.keys(remotes).some(function (jwtoken) {
+        if (remotes[jwtoken].clients[cid]) {
+          remote = remotes[jwtoken];
+          return true;
+        }
+      });
+      if (!remote) {
+        return;
+      }
+
+      PromiseA.resolve()
+        .then(function () {
+          remote.clients[cid].end();
+          return timeoutPromise(500);
+        })
+        .then(function () {
+          if (remote.clients[cid]) {
+            console.warn(cid, 'browser connection still present after calling `end`');
+            remote.clients[cid].destroy();
+            return timeoutPromise(500);
+          }
+        })
+        .then(function () {
+          if (remote.clients[cid]) {
+            console.error(cid, 'browser connection still present after calling `destroy`');
+            delete remote.clients[cid];
+          }
+        })
+        .catch(function (err) {
+          console.warn('failed to close browser connection', cid, err);
+        })
+        ;
+    }
+
+    function addToken(jwtoken) {
+      if (remotes[jwtoken]) {
+        // return { message: "token sent multiple times", code: "E_TOKEN_REPEAT" };
+        return null;
+      }
+
+      var token;
+      try {
+        token = jwt.verify(jwtoken, copts.secret);
+      } catch (e) {
+        token = null;
+      }
+
+      if (!token) {
+        return { message: "invalid access token", code: "E_INVALID_TOKEN" };
+      }
+
+      if (!Array.isArray(token.domains)) {
+        if ('string' === typeof token.name) {
+          token.domains = [ token.name ];
+        }
+      }
+
+      if (!Array.isArray(token.domains) || !token.domains.length) {
+        return { message: "invalid server name", code: "E_INVALID_NAME" };
+      }
+      if (token.domains.some(function (name) { return typeof name !== 'string'; })) {
+        return { message: "invalid server name", code: "E_INVALID_NAME" };
+      }
+
+      // Add the custom properties we need to manage this remote, then add it to all the relevant
+      // domains and the list of all this websocket's remotes.
+      token.deviceId = (token.device && (token.device.id || token.device.hostname)) || token.domains.join(',');
+      token.ws = ws;
+      token.clients = {};
+
+      token.domains.forEach(function (domainname) {
+        console.log('domainname', domainname);
+        Devices.add(deviceLists, domainname, token);
+      });
+      remotes[jwtoken] = token;
+      console.log("added token '" + token.deviceId + "' to websocket", socketId);
+      return null;
+    }
+
+    function removeToken(jwtoken) {
+      var remote = remotes[jwtoken];
+      if (!remote) {
+        return { message: 'specified token not present', code: 'E_INVALID_TOKEN'};
+      }
+
+      // Prevent any more browser connections being sent to this remote, and any existing
+      // connections from trying to send more data across the connection.
+      remote.domains.forEach(function (domainname) {
+        Devices.remove(deviceLists, domainname, remote);
+      });
+      remote.ws = null;
+
+      // Close all of the existing browser connections associated with this websocket connection.
+      Object.keys(remote.clients).forEach(function (cid) {
+        closeBrowserConn(cid);
+      });
+      delete remotes[jwtoken];
+      console.log("removed token '" + remote.deviceId + "' from websocket", socketId);
+      return null;
+    }
+
+    var firstToken;
     var authn = (ws.upgradeReq.headers.authorization||'').split(/\s+/);
-    var jwtoken;
-    var token;
-
-    try {
-      if (authn[0]) {
-        if ('basic' === authn[0].toLowerCase()) {
-          authn = new Buffer(authn[1], 'base64').toString('ascii').split(':');
-        }
-        /*
-        if (-1 !== [ 'bearer', 'jwk' ].indexOf(authn[0].toLowerCase())) {
-          jwtoken = authn[1];
-        }
-        */
-      }
-      jwtoken = authn[1] || location.query.access_token;
-    } catch(e) {
-      jwtoken = null;
+    if (authn[0] && 'basic' === authn[0].toLowerCase()) {
+      try {
+        authn = new Buffer(authn[1], 'base64').toString('ascii').split(':');
+        firstToken = authn[1];
+      } catch (err) { }
     }
-
-    try {
-      token = jwt.verify(jwtoken, copts.secret);
-    } catch(e) {
-      token = null;
+    if (!firstToken) {
+      firstToken = url.parse(ws.upgradeReq.url, true).query.access_token;
     }
-
-    /*
-    if (!token || !token.name) {
-      console.log('location, token');
-      console.log(location.query.access_token);
-      console.log(token);
-    }
-    */
-
-    if (!token) {
-      ws.send(JSON.stringify({ error: { message: "invalid access token", code: "E_INVALID_TOKEN" } }));
-      ws.close();
-      return;
-    }
-
-    //console.log('[wstunneld.js] DEBUG', token);
-
-    if (!Array.isArray(token.domains)) {
-      if ('string' === typeof token.name) {
-        token.domains = [ token.name ];
+    if (firstToken) {
+      var err = addToken(firstToken);
+      if (err) {
+        ws.send(packer.pack(null, [0, err], 'control'));
+        ws.close();
+        return;
       }
     }
 
-    if (!Array.isArray(token.domains)) {
-      ws.send(JSON.stringify({ error: { message: "invalid server name", code: "E_INVALID_NAME" } }));
-      ws.close();
-      return;
-    }
+    var commandHandlers = {
+      add_token: addToken
+    , delete_token: function (token) {
+        if (token !== '*') {
+          return removeToken(token);
+        }
+        var err;
+        Object.keys(remotes).some(function (jwtoken) {
+          err = removeToken(jwtoken);
+          return err;
+        });
+        return err;
+      }
+    };
 
-    var remote = {};
-    remote.ws = ws;
-    remote.servername = (token.device && token.device.hostname) || token.domains.join(',');
-    remote.deviceId = (token.device && token.device.id) || null;
-    remote.id = packer.socketToId(ws.upgradeReq.socket);
-    console.log("remote.id", remote.id);
-    remote.domains = token.domains;
-    remote.clients = {};
-    // TODO allow tls to be decrypted by server if client is actually a browser
-    // and we haven't implemented tls in the browser yet
-    // remote.decrypt = token.decrypt;
-
-    var handlers = {
-      onmessage: function (opts) {
-        // opts.data
-        var cid = packer.addrToId(opts);
-        var cstream = remote.clients[cid];
-
-        console.log("remote '" + remote.servername + " : " + remote.id + "' has data for '" + cid + "'", opts.data.byteLength);
-
-        if (!cstream) {
-          remote.ws.send(packer.pack(opts, null, 'error'));
+    var packerHandlers = {
+      oncontrol: function (opts) {
+        var cmd, err;
+        try {
+          cmd = JSON.parse(opts.data.toString());
+        } catch (err) {}
+        if (!Array.isArray(cmd) || typeof cmd[0] !== 'number') {
+          var msg = 'received bad command "' + opts.data.toString() + '"';
+          console.warn(msg, 'from websocket', socketId);
+          ws.send(packer.pack(null, [0, {message: msg, code: 'E_BAD_COMMAND'}], 'control'));
           return;
         }
 
-        cstream.browser.write(opts.data);
+        if (cmd[0] < 0) {
+          // We only ever send one command and we send it once, so we just hard coded the ID as 1.
+          if (cmd[0] === -1) {
+            if (cmd[1]) {
+              console.log('received error response to hello from', socketId, cmd[1]);
+            }
+          }
+          else {
+            console.warn('received response to unknown command', cmd, 'from', socketId);
+          }
+          return;
+        }
+
+        if (cmd[0] === 0) {
+          console.warn('received dis-associated error from', socketId, cmd[1]);
+          return;
+        }
+
+        if (commandHandlers[cmd[1]]) {
+          err = commandHandlers[cmd[1]].apply(null, cmd.slice(2));
+        }
+        else {
+          err = { message: 'unknown command "'+cmd[1]+'"', code: 'E_UNKNOWN_COMMAND' };
+        }
+
+        ws.send(packer.pack(null, [-cmd[0], err], 'control'));
+      }
+    , onmessage: function (opts) {
+        var cid = packer.addrToId(opts);
+        console.log("remote '" + logName() + "' has data for '" + cid + "'", opts.data.byteLength);
+
+        var browserConn;
+        Object.keys(remotes).some(function (jwtoken) {
+          if (remotes[jwtoken].clients[cid]) {
+            browserConn = remotes[jwtoken].clients[cid];
+            return true;
+          }
+        });
+
+        if (browserConn) {
+          browserConn.write(opts.data);
+        }
+        else {
+          ws.send(packer.pack(opts, null, 'error'));
+        }
       }
     , onend: function (opts) {
         var cid = packer.addrToId(opts);
         console.log('[TunnelEnd]', cid);
-        handlers._onend(cid);
+        closeBrowserConn(cid);
       }
     , onerror: function (opts) {
         var cid = packer.addrToId(opts);
         console.log('[TunnelError]', cid);
-        handlers._onend(cid);
-      }
-    , _onend: function (cid) {
-        var c = remote.clients[cid];
-        delete remote.clients[cid];
-        try {
-          c.browser.end();
-        } catch(e) {
-          // ignore
-        }
-        try {
-          c.wrapped.end();
-        } catch(e) {
-          // ignore
-        }
+        closeBrowserConn(cid);
       }
     };
-    remote.unpacker = packer.create(handlers);
-
-    // Now that we have created our remote object we need to store it in the deviceList for
-    // each domainname we are supposed to be handling.
-    token.domains.forEach(function (domainname) {
-      console.log('domainname', domainname);
-      Devices.add(deviceLists, domainname, remote);
-    });
+    var unpacker = packer.create(packerHandlers);
 
     var lastActivity = Date.now();
     var timeoutId;
@@ -182,11 +312,11 @@ module.exports.create = function (copts) {
       // Otherwise we check to see if the pong has also timed out, and if not we send a ping
       // and call this function again when the pong will have timed out.
       else if (silent < activityTimeout + pongTimeout) {
-        console.log('pinging', remote.deviceId || remote.servername);
+        console.log('pinging', logName());
         try {
-          remote.ws.ping();
+          ws.ping();
         } catch (err) {
-          console.warn('failed to ping home cloud', remote.deviceId || remote.servername);
+          console.warn('failed to ping home cloud', logName());
         }
         timeoutId = setTimeout(checkTimeout, pongTimeout);
       }
@@ -194,8 +324,8 @@ module.exports.create = function (copts) {
       // Last case means the ping we sent before didn't get a response soon enough, so we
       // need to close the websocket connection.
       else {
-        console.log('home cloud', remote.deviceId || remote.servername, 'connection timed out');
-        remote.ws.close(1013, 'connection timeout');
+        console.log('home cloud', logName(), 'connection timed out');
+        ws.close(1013, 'connection timeout');
       }
     }
     timeoutId = setTimeout(checkTimeout, activityTimeout);
@@ -208,95 +338,54 @@ module.exports.create = function (copts) {
       refreshTimeout();
       console.log('message from home cloud to tunneler to browser', chunk.byteLength);
       //console.log(chunk.toString());
-      remote.unpacker.fns.addChunk(chunk);
+      unpacker.fns.addChunk(chunk);
     });
 
     function hangup() {
       clearTimeout(timeoutId);
-      console.log('home cloud', remote.deviceId || remote.servername, 'connection closing');
-      // the remote will handle closing its local connections
-      Object.keys(remote.clients).forEach(function (cid) {
-        try {
-          remote.clients[cid].browser.end();
-        } catch(e) {
-          // ignore
-        }
+      console.log('home cloud', logName(), 'connection closing');
+      Object.keys(remotes).forEach(function (jwtoken) {
+        removeToken(jwtoken);
       });
-      token.domains.forEach(function (domainname) {
-        Devices.remove(deviceLists, domainname, remote);
-      });
+      ws.terminate();
     }
 
     ws.on('close', hangup);
     ws.on('error', hangup);
+
+    // We only ever send one command and we send it once, so we just hard code the ID as 1
+    ws.send(packer.pack(null, [1, 'hello', [unpacker._version], Object.keys(commandHandlers)], 'control'));
   }
 
-  function pipeWs(servername, service, browser, remote) {
-    console.log('pipeWs');
+  function pipeWs(servername, service, browserConn, remote) {
+    console.log('[pipeWs] servername:', servername, 'service:', service);
 
-    //var remote = deviceLists[servername];
-    var ws = remote.ws;
-    //var address = packer.socketToAddr(ws.upgradeReq.socket);
-    var baddress = packer.socketToAddr(browser);
-    var cid = packer.addrToId(baddress);
-    console.log('servername:', servername);
-    console.log('service:', service);
-    baddress.service = service;
-    var wrapForRemote = packer.Transform.create({
-      id: cid
-    //, remoteId: remote.id
-    , address: baddress
-    , servername: servername
-    , service: service
-    });
-    console.log('home-cloud is', packer.socketToId(remote.ws.upgradeReq.socket));
-    console.log('browser is', cid);
-    var bstream = remote.clients[cid] = {
-      wrapped: browser.pipe(wrapForRemote)
-    , browser: browser
-    , address: baddress
-    };
-    //var bstream = remote.clients[cid] = wrapForRemote.pipe(browser);
-    bstream.wrapped.on('data', function (pchunk) {
-      // var chunk = socket.read();
-      console.log('[bstream] data from browser to tunneler', pchunk.byteLength);
-      //console.log(JSON.stringify(pchunk.toString()));
-      try {
-        ws.send(pchunk, { binary: true });
-      } catch(e) {
+    var browserAddr = packer.socketToAddr(browserConn);
+    browserAddr.service = service;
+    var cid = packer.addrToId(browserAddr);
+    console.log('[pipeWs] browser is', cid, 'home-cloud is', packer.socketToId(remote.ws.upgradeReq.socket));
+
+    function sendWs(data, serviceOverride) {
+      if (remote.ws) {
         try {
-          bstream.browser.end();
-        } catch(e) {
-          // ignore
+          remote.ws.send(packer.pack(browserAddr, data, serviceOverride), { binary: true });
+        } catch (err) {
+          console.warn('[pipeWs] error sending websocket message', err);
         }
       }
+    }
+
+    remote.clients[cid] = browserConn;
+    browserConn.on('data', function (chunk) {
+      console.log('[pipeWs] data from browser to tunneler', chunk.byteLength);
+      sendWs(chunk);
     });
-    bstream.wrapped.on('error', function (err) {
-      console.error('[error] bstream.wrapped.error');
-      console.error(err);
-      try {
-        ws.send(packer.pack(baddress, null, 'error'), { binary: true });
-      } catch(e) {
-        // ignore
-      }
-      try {
-        bstream.browser.end();
-      } catch(e) {
-        // ignore
-      }
-      delete remote.clients[cid];
+    browserConn.on('error', function (err) {
+      console.warn('[pipeWs] browser connection error', err);
     });
-    bstream.wrapped.on('end', function () {
-      try {
-        ws.send(packer.pack(baddress, null, 'end'), { binary: true });
-      } catch(e) {
-        // ignore
-      }
-      try {
-        bstream.browser.end();
-      } catch(e) {
-        // ignore
-      }
+    browserConn.on('close', function (hadErr) {
+      console.log('[pipeWs] browser connection closing');
+      sendWs(null, hadErr ? 'error': 'end');
       delete remote.clients[cid];
     });
   }

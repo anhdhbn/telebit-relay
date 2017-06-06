@@ -2,7 +2,7 @@
 
 var http = require('http');
 var tls = require('tls');
-var packerStream = require('tunnel-packer').Stream;
+var wrapSocket = require('tunnel-packer').wrapSocket;
 var redirectHttps = require('redirect-https')();
 
 module.exports.create = function (program) {
@@ -57,19 +57,8 @@ module.exports.create = function (program) {
     // tlsServer.emit('connection', socket);    // this didn't work either
     //console.log('chunkLen', firstChunk.byteLength);
 
-    var myDuplex = packerStream.create(socket);
-
     console.log('httpsInvalid servername', servername);
-    program.tlsInvalidSniServer.emit('connection', myDuplex);
-
-    socket.on('data', function (chunk) {
-      console.log('[' + Date.now() + '] socket data', chunk.byteLength);
-      myDuplex.push(chunk);
-    });
-    socket.on('error', function (err) {
-      console.error('[error] httpsInvalid TODO close');
-      console.error(err);
-    });
+    program.tlsInvalidSniServer.emit('connection', wrapSocket(socket));
   };
 
   //
@@ -97,18 +86,7 @@ module.exports.create = function (program) {
     // tlsServer.emit('connection', socket);    // this didn't work either
     //console.log('chunkLen', firstChunk.byteLength);
 
-    var myDuplex = packerStream.create(socket);
-
     console.log('httpsTunnel (Admin) servername', servername);
-    program.tlsTunnelServer.emit('connection', myDuplex);
-
-    socket.on('data', function (chunk) {
-      console.log('[' + Date.now() + '] socket data', chunk.byteLength);
-      myDuplex.push(chunk);
-    });
-    socket.on('error', function (err) {
-      console.error('[error] httpsTunnel (Admin) TODO close');
-      console.error(err);
-    });
+    program.tlsTunnelServer.emit('connection', wrapSocket(socket));
   };
 };
