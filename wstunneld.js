@@ -96,6 +96,7 @@ module.exports.create = function (copts) {
         return;
       }
 
+      remote.closing[cid] = true;
       PromiseA.resolve()
         .then(function () {
           remote.clients[cid].end();
@@ -116,6 +117,9 @@ module.exports.create = function (copts) {
         })
         .catch(function (err) {
           console.warn('failed to close browser connection', cid, err);
+        })
+        .then(function () {
+          delete remote.closing[cid];
         })
         ;
     }
@@ -155,6 +159,7 @@ module.exports.create = function (copts) {
       token.deviceId = (token.device && (token.device.id || token.device.hostname)) || token.domains.join(',');
       token.ws = ws;
       token.clients = {};
+      token.closing = {};
 
       token.domains.forEach(function (domainname) {
         console.log('domainname', domainname);
@@ -366,7 +371,7 @@ module.exports.create = function (copts) {
     console.log('[pipeWs] browser is', cid, 'home-cloud is', packer.socketToId(remote.ws.upgradeReq.socket));
 
     function sendWs(data, serviceOverride) {
-      if (remote.ws) {
+      if (remote.ws && !remote.closing[cid]) {
         try {
           remote.ws.send(packer.pack(browserAddr, data, serviceOverride), { binary: true });
         } catch (err) {
