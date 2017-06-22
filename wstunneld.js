@@ -488,8 +488,11 @@ module.exports.create = function (copts) {
       console.error('[error] tcp socket raw TODO forward and close');
       console.error(err);
     });
-
   }
 
-  return { tcp: onTcpConnection, ws: onWsConnection };
+  return {
+    tcp: onTcpConnection
+  , ws: onWsConnection
+  , isClientDomain: Devices.exist.bind(null, deviceLists)
+  };
 };
