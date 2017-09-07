@@ -9,11 +9,11 @@ var stunneld = require('../wstunneld.js');
 var greenlock = require('greenlock');
 
 function collectServernames(val, memo) {
-  val.split(/,/).forEach(function (servername) {
-    memo.push(servername.toLowerCase());
+  var lowerCase = val.split(/,/).map(function (servername) {
+    return servername.toLowerCase();
   });
 
-  return memo;
+  return memo.concat(lowerCase);
 }
 
 function collectProxies(val, memo) {
@@ -65,8 +65,7 @@ function collectProxies(val, memo) {
 }
 
 function collectPorts(val, memo) {
-  memo = memo.concat(val.split(/,/g).filter(Boolean));
-  return memo;
+  return memo.concat(val.split(/,/g).map(Number).filter(Boolean));
 }
 
 program
