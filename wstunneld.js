@@ -2,15 +2,8 @@
 
 var sni = require('sni');
 var url = require('url');
-var PromiseA = require('bluebird');
 var jwt = require('jsonwebtoken');
 var packer = require('tunnel-packer');
-
-function timeoutPromise(duration) {
-  return new PromiseA(function (resolve) {
-    setTimeout(resolve, duration);
-  });
-}
 
 var Devices = {};
 Devices.add = function (store, servername, newDevice) {
@@ -84,44 +77,16 @@ module.exports.create = function (copts) {
       return result || socketId;
     }
 
-    function closeBrowserConn(cid) {
-      var remote;
+    function getBrowserConn(cid) {
+      var browserConn;
       Object.keys(remotes).some(function (jwtoken) {
         if (remotes[jwtoken].clients[cid]) {
-          remote = remotes[jwtoken];
+          browserConn = remotes[jwtoken].clients[cid];
           return true;
         }
       });
-      if (!remote) {
-        return;
-      }
 
-      remote.closing[cid] = true;
-      PromiseA.resolve()
-        .then(function () {
-          remote.clients[cid].end();
-          return timeoutPromise(500);
-        })
-        .then(function () {
-          if (remote.clients[cid]) {
-            console.warn(cid, 'browser connection still present after calling `end`');
-            remote.clients[cid].destroy();
-            return timeoutPromise(500);
-          }
-        })
-        .then(function () {
-          if (remote.clients[cid]) {
-            console.error(cid, 'browser connection still present after calling `destroy`');
-            delete remote.clients[cid];
-          }
-        })
-        .catch(function (err) {
-          console.warn('failed to close browser connection', cid, err);
-        })
-        .then(function () {
-          delete remote.closing[cid];
-        })
-        ;
+      return browserConn;
     }
 
     function addToken(jwtoken) {
@@ -159,7 +124,6 @@ module.exports.create = function (copts) {
       token.deviceId = (token.device && (token.device.id || token.device.hostname)) || token.domains.join(',');
       token.ws = ws;
       token.clients = {};
-      token.closing = {};
 
       token.domains.forEach(function (domainname) {
         console.log('domainname', domainname);
@@ -185,7 +149,7 @@ module.exports.create = function (copts) {
 
       // Close all of the existing browser connections associated with this websocket connection.
       Object.keys(remote.clients).forEach(function (cid) {
-        closeBrowserConn(cid);
+        remote.clients[cid].end();
       });
       delete remotes[jwtoken];
       console.log("removed token '" + remote.deviceId + "' from websocket", socketId);
@@ -271,30 +235,28 @@ module.exports.create = function (copts) {
         var cid = packer.addrToId(opts);
         console.log("remote '" + logName() + "' has data for '" + cid + "'", opts.data.byteLength);
 
-        var browserConn;
-        Object.keys(remotes).some(function (jwtoken) {
-          if (remotes[jwtoken].clients[cid]) {
-            browserConn = remotes[jwtoken].clients[cid];
-            return true;
-          }
-        });
-
+        var browserConn = getBrowserConn(cid);
         if (browserConn) {
           browserConn.write(opts.data);
-        }
-        else {
+        } else {
           ws.send(packer.pack(opts, null, 'error'));
         }
       }
     , onend: function (opts) {
         var cid = packer.addrToId(opts);
         console.log('[TunnelEnd]', cid);
-        closeBrowserConn(cid);
+        var browserConn = getBrowserConn(cid);
+        if (browserConn) {
+          browserConn.end();
+        }
       }
     , onerror: function (opts) {
         var cid = packer.addrToId(opts);
         console.log('[TunnelError]', cid);
-        closeBrowserConn(cid);
+        var browserConn = getBrowserConn(cid);
+        if (browserConn) {
+          browserConn.destroy();
+        }
       }
     };
     var unpacker = packer.create(packerHandlers);
@@ -362,16 +324,17 @@ module.exports.create = function (copts) {
     ws.send(packer.pack(null, [1, 'hello', [unpacker._version], Object.keys(commandHandlers)], 'control'));
   }
 
-  function pipeWs(servername, service, browserConn, remote) {
+  function pipeWs(servername, service, conn, remote) {
     console.log('[pipeWs] servername:', servername, 'service:', service);
 
-    var browserAddr = packer.socketToAddr(browserConn);
+    var browserAddr = packer.socketToAddr(conn);
     browserAddr.service = service;
     var cid = packer.addrToId(browserAddr);
     console.log('[pipeWs] browser is', cid, 'home-cloud is', packer.socketToId(remote.ws.upgradeReq.socket));
 
+    var sentEnd = false;
     function sendWs(data, serviceOverride) {
-      if (remote.ws && !remote.closing[cid]) {
+      if (remote.ws) {
         try {
           remote.ws.send(packer.pack(browserAddr, data, serviceOverride), { binary: true });
         } catch (err) {
@@ -380,22 +343,58 @@ module.exports.create = function (copts) {
       }
     }
 
-    remote.clients[cid] = browserConn;
-    browserConn.on('data', function (chunk) {
+    var trueEnd = conn.end;
+    conn.end = function () {
+      // delete the connection from the clients to make sure nothing more can be written, then
+      // call the actual end function to clost the write part of the connection.
+      delete remote.clients[cid];
+      trueEnd.apply(conn, arguments);
+
+      var timeoutId = setTimeout(function () {
+        console.warn('[pipeWs] browser connection', cid, 'still open 1 min after sending `end`');
+        conn.destroy();
+      }, 60*1000);
+      conn.on('close', function () {
+        clearTimeout(timeoutId);
+      });
+    };
+
+    remote.clients[cid] = conn;
+    conn.on('data', function (chunk) {
       console.log('[pipeWs] data from browser to tunneler', chunk.byteLength);
       sendWs(chunk);
     });
-    browserConn.on('error', function (err) {
+    conn.on('error', function (err) {
       console.warn('[pipeWs] browser connection error', err);
     });
-    browserConn.on('close', function (hadErr) {
+    conn.on('end', function () {
+      if (!sentEnd) {
+        sendWs(null, 'end');
+        sentEnd = true;
+      }
+
+      // Only add timeout to make sure other side is eventually closed if it isn't already closed.
+      if (remote.clients[cid]) {
+        var timeoutId = setTimeout(function () {
+          console.warn('[pipeWs] browser connection', cid, 'still open 1 min after receiving `end`');
+          conn.destroy();
+        }, 60*1000);
+        conn.on('close', function () {
+          clearTimeout(timeoutId);
+        });
+      }
+    });
+    conn.on('close', function (hadErr) {
       console.log('[pipeWs] browser connection closing');
-      sendWs(null, hadErr ? 'error': 'end');
       delete remote.clients[cid];
+      if (!sentEnd) {
+        sendWs(null, hadErr ? 'error': 'end');
+        sentEnd = true;
+      }
     });
   }
 
-  function onTcpConnection(browser) {
+  function onTcpConnection(conn) {
     // this works when I put it here, but I don't know if it's tls yet here
     // httpsServer.emit('connection', socket);
     //tls3000.emit('connection', socket);
@@ -406,7 +405,7 @@ module.exports.create = function (copts) {
     //});
 
     //return;
-    browser.once('data', function (firstChunk) {
+    conn.once('data', function (firstChunk) {
       // BUG XXX: this assumes that the packet won't be chunked smaller
       // than the 'hello' or the point of the 'Host' header.
       // This is fairly reasonable, but there are edge cases where
@@ -415,7 +414,7 @@ module.exports.create = function (copts) {
 
       // defer after return (instead of being in many places)
       process.nextTick(function () {
-        browser.unshift(firstChunk);
+        conn.unshift(firstChunk);
       });
 
       var service = 'tcp';
@@ -426,25 +425,25 @@ module.exports.create = function (copts) {
       function tryTls() {
         if (-1 !== copts.servernames.indexOf(servername)) {
           console.log("Lock and load, admin interface time!");
-          copts.httpsTunnel(servername, browser);
+          copts.httpsTunnel(servername, conn);
           return;
         }
 
         if (!servername) {
           console.log("No SNI was given, so there's nothing we can do here");
-          copts.httpsInvalid(servername, browser);
+          copts.httpsInvalid(servername, conn);
           return;
         }
 
         var nextDevice = Devices.next(deviceLists, servername);
         if (!nextDevice) {
           console.log("No devices match the given servername");
-          copts.httpsInvalid(servername, browser);
+          copts.httpsInvalid(servername, conn);
           return;
         }
 
         console.log("pipeWs(servername, service, socket, deviceLists['" + servername + "'])");
-        pipeWs(servername, service, browser, nextDevice);
+        pipeWs(servername, service, conn, nextDevice);
       }
 
       // https://github.com/mscdex/httpolyglot/issues/3#issuecomment-173680155
@@ -469,27 +468,27 @@ module.exports.create = function (copts) {
           if (/well-known/.test(str)) {
             // HTTP
             if (Devices.exist(deviceLists, servername)) {
-              pipeWs(servername, service, browser, Devices.next(deviceLists, servername));
+              pipeWs(servername, service, conn, Devices.next(deviceLists, servername));
               return;
             }
-            copts.handleHttp(servername, browser);
+            copts.handleHttp(servername, conn);
           }
           else {
             // redirect to https
-            copts.handleInsecureHttp(servername, browser);
+            copts.handleInsecureHttp(servername, conn);
           }
           return;
         }
       }
 
       console.error("Got unexpected connection", str);
-      browser.write(JSON.stringify({ error: {
+      conn.write(JSON.stringify({ error: {
         message: "not sure what you were trying to do there..."
       , code: 'E_INVALID_PROTOCOL' }
       }));
-      browser.end();
+      conn.end();
     });
-    browser.on('error', function (err) {
+    conn.on('error', function (err) {
       console.error('[error] tcp socket raw TODO forward and close');
       console.error(err);
     });
