@@ -183,7 +183,7 @@ require('../handlers').create(program); // adds directly to program for now...
   var wss = new WebSocketServer({ server: (program.httpTunnelServer || program.httpServer) });
 	wss.on('connection', netConnHandlers.ws);
   program.ports.forEach(function (port) {
-    var tcp3000 = net.createServer({ allowHalfOpen: true });
+    var tcp3000 = net.createServer();
     tcp3000.listen(port, function () {
       console.log('listening on ' + port);
     });
