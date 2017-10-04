@@ -44,7 +44,7 @@ module.exports.create = function (program) {
   // SNI is not recogonized / cannot be handled
   //
   program.httpInvalidSniServer = http.createServer(function (req, res) {
-    res.end("You're doing strange things that make me feel uncomfortable. Please don't touch me there any more.");
+    res.end("This is an old error message that shouldn't be actually be acessible anymore. If you get this please tell AJ so that he finds where it was still referenced and removes it");
   });
   program.tlsInvalidSniServer = tls.createServer(program.tlsOptions, function (tlsSocket) {
     console.log('tls connection');
@@ -58,7 +58,33 @@ module.exports.create = function (program) {
     //console.log('chunkLen', firstChunk.byteLength);
 
     console.log('httpsInvalid servername', servername);
-    program.tlsInvalidSniServer.emit('connection', wrapSocket(socket));
+    //program.tlsInvalidSniServer.emit('connection', wrapSocket(socket));
+    var tlsInvalidSniServer = tls.createServer(program.tlsOptions, function (tlsSocket) {
+      console.log('tls connection');
+      // things get a little messed up here
+      var httpInvalidSniServer = http.createServer(function (req, res) {
+        if (!servername) {
+          res.statusCode = 422;
+          res.end(
+            "3. An inexplicable temporal shift of the quantum realm... that makes me feel uncomfortable.\n\n"
+          + "[ERROR] No SNI header was sent. I can only think of two possible explanations for this:\n"
+          + "\t1. You really love Windows XP and you just won't let go of Internet Explorer 6\n"
+          + "\t2. You're writing a bot and you forgot to set the servername parameter\n"
+          );
+          return;
+        }
+
+        res.end(
+          "You came in hot looking for '" + servername + "' and, granted, the IP address for that domain"
+        + " must be pointing here (or else how could you be here?), nevertheless either it's not registered"
+        + " in the internal system at all (which Seth says isn't even a thing) or there is no device"
+        + " connected on the south side of the network which has informed me that it's ready to have traffic"
+        + " for that domain forwarded to it (sorry I didn't check that deeply to determine which).\n\n"
+        + "Either way, you're doing strange things that make me feel uncomfortable... Please don't touch me there any more.");
+      });
+      httpInvalidSniServer.emit('connection', tlsSocket);
+    });
+    tlsInvalidSniServer.emit('connection', wrapSocket(socket));
   };
 
   //
