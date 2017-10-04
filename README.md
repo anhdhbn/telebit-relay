@@ -30,6 +30,11 @@ Installs as `stunnel.js` with the alias `jstunnel`
 npm install -g stunneld
 ```
 
+Then `dist/etc/systemd/system/stunneld.service` should be copied to `/etc/systemd/system/stunneld.service` and
+the ARGUMENTS, such as SECRET, MUST BE CHANGED.
+
+*TODO*: make `--config /path/to/config` the only argument (and have the secret auto-generated on first run?)
+
 ### Advanced Usage
 
 How to use `stunnel.js` with your own instance of `stunneld.js`:
