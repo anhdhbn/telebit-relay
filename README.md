@@ -1,21 +1,6 @@
-<!-- BANNER_TPL_BEGIN -->
-
-About Daplie: We're taking back the Internet!
---------------
-
-Down with Google, Apple, and Facebook!
-
-We're re-decentralizing the web and making it read-write again - one home cloud system at a time.
-
-Tired of serving the Empire? Come join the Rebel Alliance:
-
-<a href="mailto:jobs@daplie.com">jobs@daplie.com</a> | [Invest in Daplie on Wefunder](https://daplie.com/invest/) | [Pre-order Cloud](https://daplie.com/preorder/), The World's First Home Server for Everyone
-
-<!-- BANNER_TPL_END -->
-
 # stunneld.js
 
-A server that works in combination with [stunnel.js](https://github.com/Daplie/node-tunnel-client)
+A server that works in combination with [stunnel.js](https://git.coolaj86.com/coolaj86/tunnel-client.js)
 to allow you to serve http and https from any computer, anywhere through a secure tunnel.
 
 CLI
@@ -67,11 +52,11 @@ but those generally cost $5 - $20 / month and so it's probably
 cheaper to purchase data transfer (which we supply, obviously),
 which is only $1/month for most people.
 
-Just use the client ([stunnel.js](https://github.com/Daplie/node-tunnel-client))
-with Daplie's tunneling service (the default) and save yourself the monthly fee
+Just use the client ([stunnel.js](https://git.coolaj86.com/coolaj86/tunnel-client.js))
+with this tunneling service (the default) and save yourself the monthly fee
 by only paying for the data you need.
 
-	* Daplie Tunnel (zero setup)
+	* Node WS Tunnel (zero setup)
 	* Heroku (zero cost)
 	* Chunk Host (best deal per TB/month)
 
