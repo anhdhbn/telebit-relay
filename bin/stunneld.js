@@ -96,7 +96,7 @@ program.ports.forEach(function (port) {
 
 program.servernames = Object.keys(servernamesMap);
 if (!program.servernames.length) {
-  throw new Error('must specify at least one server or servername');
+  throw new Error('You must give this server at least one servername for its admin interface. Example:\n\n\t--servernames tunnel.example.com,tunnel.example.net');
 }
 
 program.ports = Object.keys(portsMap);
@@ -145,8 +145,8 @@ if (!program.email || !program.agreeTos) {
 else {
   program.greenlock = greenlock.create({
 
-    //server: 'staging'
-    server: 'https://acme-v01.api.letsencrypt.org/directory'
+    version: 'draft-11'
+  , server: 'https://acme-v02.api.letsencrypt.org/directory'
 
   , challenges: {
       // TODO dns-01

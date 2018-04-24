@@ -72,8 +72,9 @@ module.exports.create = function (copts) {
   var activityTimeout = copts.activityTimeout || 2*60*1000;
   var pongTimeout = copts.pongTimeout || 10*1000;
 
-  function onWsConnection(ws) {
-    var socketId = packer.socketToId(ws.upgradeReq.socket);
+  function onWsConnection(ws, upgradeReq) {
+    console.log(ws);
+    var socketId = packer.socketToId(upgradeReq.socket);
     var remotes = {};
 
     function logName() {
@@ -178,6 +179,7 @@ module.exports.create = function (copts) {
       // domains and the list of all this websocket's remotes.
       token.deviceId = (token.device && (token.device.id || token.device.hostname)) || token.domains.join(',');
       token.ws = ws;
+      token.upgradeReq = upgradeReq;
       token.clients = {};
 
       token.pausedConns = [];
@@ -221,6 +223,7 @@ module.exports.create = function (copts) {
         Devices.remove(deviceLists, domainname, remote);
       });
       remote.ws = null;
+      remote.upgradeReq = null;
 
       // Close all of the existing browser connections associated with this websocket connection.
       Object.keys(remote.clients).forEach(function (cid) {
@@ -232,7 +235,7 @@ module.exports.create = function (copts) {
     }
 
     var firstToken;
-    var authn = (ws.upgradeReq.headers.authorization||'').split(/\s+/);
+    var authn = (upgradeReq.headers.authorization||'').split(/\s+/);
     if (authn[0] && 'basic' === authn[0].toLowerCase()) {
       try {
         authn = new Buffer(authn[1], 'base64').toString('ascii').split(':');
@@ -240,7 +243,7 @@ module.exports.create = function (copts) {
       } catch (err) { }
     }
     if (!firstToken) {
-      firstToken = url.parse(ws.upgradeReq.url, true).query.access_token;
+      firstToken = url.parse(upgradeReq.url, true).query.access_token;
     }
     if (firstToken) {
       var err = addToken(firstToken);
@@ -441,7 +444,7 @@ module.exports.create = function (copts) {
     browserAddr.service = service;
     var cid = packer.addrToId(browserAddr);
     conn.tunnelCid = cid;
-    console.log('[pipeWs] browser is', cid, 'home-cloud is', packer.socketToId(remote.ws.upgradeReq.socket));
+    console.log('[pipeWs] browser is', cid, 'home-cloud is', packer.socketToId(remote.upgradeReq.socket));
 
     function sendWs(data, serviceOverride) {
       if (remote.ws && (!conn.tunnelClosing || serviceOverride)) {
