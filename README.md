@@ -1,3 +1,4 @@
+| Sponsored by [ppl](https://ppl.family) | **tunnel-server.js** | [tunnel-client.js](https://git.coolaj86.com/coolaj86/tunnel-client.js) |
 # stunneld.js
 
 A server that works in combination with [stunnel.js](https://git.coolaj86.com/coolaj86/tunnel-client.js)
@@ -19,6 +20,12 @@ Then `dist/etc/systemd/system/stunneld.service` should be copied to `/etc/system
 the ARGUMENTS, such as SECRET, MUST BE CHANGED.
 
 *TODO*: make `--config /path/to/config` the only argument (and have the secret auto-generated on first run?)
+
+## Note: Use node.js v8.x
+
+There is a bug in node v9.x that causes stunneld to crash.
+
+https://github.com/nodejs/node/issues/20241
 
 ### Advanced Usage
 
