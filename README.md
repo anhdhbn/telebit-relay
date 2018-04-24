@@ -20,6 +20,12 @@ the ARGUMENTS, such as SECRET, MUST BE CHANGED.
 
 *TODO*: make `--config /path/to/config` the only argument (and have the secret auto-generated on first run?)
 
+## Note: Use node.js v8.x
+
+There is a bug in node v9.x that causes stunneld to crash.
+
+https://github.com/nodejs/node/issues/20241
+
 ### Advanced Usage
 
 How to use `stunnel.js` with your own instance of `stunneld.js`:
