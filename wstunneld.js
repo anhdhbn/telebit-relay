@@ -1,6 +1,5 @@
 'use strict';
 
-var sni = require('sni');
 var url = require('url');
 var PromiseA = require('bluebird');
 var jwt = require('jsonwebtoken');
@@ -12,65 +11,16 @@ function timeoutPromise(duration) {
   });
 }
 
-var Devices = {};
-Devices.add = function (store, servername, newDevice) {
-  var devices = store[servername] || [];
-  devices.push(newDevice);
-  store[servername] = devices;
-};
-Devices.remove = function (store, servername, device) {
-  var devices = store[servername] || [];
-  var index = devices.indexOf(device);
-
-  if (index < 0) {
-    console.warn('attempted to remove non-present device', device.deviceId, 'from', servername);
-    return null;
-  }
-  return devices.splice(index, 1)[0];
-};
-Devices.list = function (store, servername) {
-  if (store[servername] && store[servername].length) {
-    return store[servername];
-  }
-  // There wasn't an exact match so check any of the wildcard domains, sorted longest
-  // first so the one with the biggest natural match with be found first.
-  var deviceList = [];
-  Object.keys(store).filter(function (pattern) {
-    return pattern[0] === '*' && store[pattern].length;
-  }).sort(function (a, b) {
-    return b.length - a.length;
-  }).some(function (pattern) {
-    var subPiece = pattern.slice(1);
-    if (subPiece === servername.slice(-subPiece.length)) {
-      console.log('"'+servername+'" matches "'+pattern+'"');
-      deviceList = store[pattern];
-      return true;
-    }
-  });
-
-  return deviceList;
-};
-Devices.exist = function (store, servername) {
-  return !!(Devices.list(store, servername).length);
-};
-Devices.next = function (store, servername) {
-  var devices = Devices.list(store, servername);
-  var device;
-
-  if (devices._index >= devices.length) {
-    devices._index = 0;
-  }
-  device = devices[devices._index || 0];
-  devices._index = (devices._index || 0) + 1;
-
-  return device;
-};
+var Devices = require('./lib/device-tracker');
 
 module.exports.store = { Devices: Devices };
 module.exports.create = function (copts) {
-  var deviceLists = {};
+  copts.deviceLists = {};
+  //var deviceLists = {};
   var activityTimeout = copts.activityTimeout || 2*60*1000;
   var pongTimeout = copts.pongTimeout || 10*1000;
+  copts.Devices = Devices;
+  var onTcpConnection = require('./lib/unwrap-tls').createTcpConnectionHandler(copts);
 
   function onWsConnection(ws, upgradeReq) {
     console.log(ws);
@@ -204,7 +154,7 @@ module.exports.create = function (copts) {
 
       token.domains.forEach(function (domainname) {
         console.log('domainname', domainname);
-        Devices.add(deviceLists, domainname, token);
+        Devices.add(copts.deviceLists, domainname, token);
       });
       remotes[jwtoken] = token;
       console.log("added token '" + token.deviceId + "' to websocket", socketId);
@@ -220,7 +170,7 @@ module.exports.create = function (copts) {
       // Prevent any more browser connections being sent to this remote, and any existing
       // connections from trying to send more data across the connection.
       remote.domains.forEach(function (domainname) {
-        Devices.remove(deviceLists, domainname, remote);
+        Devices.remove(copts.deviceLists, domainname, remote);
       });
       remote.ws = null;
       remote.upgradeReq = null;
@@ -437,154 +387,9 @@ module.exports.create = function (copts) {
     sendTunnelMsg(null, [1, 'hello', [unpacker._version], Object.keys(commandHandlers)], 'control');
   }
 
-  function pipeWs(servername, service, conn, remote) {
-    console.log('[pipeWs] servername:', servername, 'service:', service);
-
-    var browserAddr = packer.socketToAddr(conn);
-    browserAddr.service = service;
-    var cid = packer.addrToId(browserAddr);
-    conn.tunnelCid = cid;
-    console.log('[pipeWs] browser is', cid, 'home-cloud is', packer.socketToId(remote.upgradeReq.socket));
-
-    function sendWs(data, serviceOverride) {
-      if (remote.ws && (!conn.tunnelClosing || serviceOverride)) {
-        try {
-          remote.ws.send(packer.pack(browserAddr, data, serviceOverride), { binary: true });
-          // If we can't send data over the websocket as fast as this connection can send it to us
-          // (or there are a lot of connections trying to send over the same websocket) then we
-          // need to pause the connection for a little. We pause all connections if any are paused
-          // to make things more fair so a connection doesn't get stuck waiting for everyone else
-          // to finish because it got caught on the boundary. Also if serviceOverride is set it
-          // means the connection is over, so no need to pause it.
-          if (!serviceOverride && (remote.pausedConns.length || remote.ws.bufferedAmount > 1024*1024)) {
-            // console.log('pausing', cid, 'to allow web socket to catch up');
-            conn.pause();
-            remote.pausedConns.push(conn);
-          }
-        } catch (err) {
-          console.warn('[pipeWs] error sending websocket message', err);
-        }
-      }
-    }
-
-    remote.clients[cid] = conn;
-    conn.on('data', function (chunk) {
-      console.log('[pipeWs] data from browser to tunneler', chunk.byteLength);
-      sendWs(chunk);
-    });
-    conn.on('error', function (err) {
-      console.warn('[pipeWs] browser connection error', err);
-    });
-    conn.on('close', function (hadErr) {
-      console.log('[pipeWs] browser connection closing');
-      sendWs(null, hadErr ? 'error': 'end');
-      delete remote.clients[cid];
-    });
-  }
-
-  function onTcpConnection(conn) {
-    // this works when I put it here, but I don't know if it's tls yet here
-    // httpsServer.emit('connection', socket);
-    //tls3000.emit('connection', socket);
-
-    //var tlsSocket = new tls.TLSSocket(socket, { secureContext: tls.createSecureContext(tlsOpts) });
-    //tlsSocket.on('data', function (chunk) {
-    //  console.log('dummy', chunk.byteLength);
-    //});
-
-    //return;
-    conn.once('data', function (firstChunk) {
-      // BUG XXX: this assumes that the packet won't be chunked smaller
-      // than the 'hello' or the point of the 'Host' header.
-      // This is fairly reasonable, but there are edge cases where
-      // it does not hold (such as manual debugging with telnet)
-      // and so it should be fixed at some point in the future
-
-      // defer after return (instead of being in many places)
-      process.nextTick(function () {
-        conn.unshift(firstChunk);
-      });
-
-      var service = 'tcp';
-      var servername;
-      var str;
-      var m;
-
-      function tryTls() {
-        if (-1 !== copts.servernames.indexOf(servername)) {
-          console.log("Lock and load, admin interface time!");
-          copts.httpsTunnel(servername, conn);
-          return;
-        }
-
-        if (!servername) {
-          console.log("No SNI was given, so there's nothing we can do here");
-          copts.httpsInvalid(servername, conn);
-          return;
-        }
-
-        var nextDevice = Devices.next(deviceLists, servername);
-        if (!nextDevice) {
-          console.log("No devices match the given servername");
-          copts.httpsInvalid(servername, conn);
-          return;
-        }
-
-        console.log("pipeWs(servername, service, socket, deviceLists['" + servername + "'])");
-        pipeWs(servername, service, conn, nextDevice);
-      }
-
-      // https://github.com/mscdex/httpolyglot/issues/3#issuecomment-173680155
-      if (22 === firstChunk[0]) {
-        // TLS
-        service = 'https';
-        servername = (sni(firstChunk)||'').toLowerCase();
-        console.log("tls hello servername:", servername);
-        tryTls();
-        return;
-      }
-
-      if (firstChunk[0] > 32 && firstChunk[0] < 127) {
-        str = firstChunk.toString();
-        m = str.match(/(?:^|[\r\n])Host: ([^\r\n]+)[\r\n]*/im);
-        servername = (m && m[1].toLowerCase() || '').split(':')[0];
-        console.log('servername', servername);
-        if (/HTTP\//i.test(str)) {
-          service = 'http';
-          // TODO disallow http entirely
-          // /^\/\.well-known\/acme-challenge\//.test(str)
-          if (/well-known/.test(str)) {
-            // HTTP
-            if (Devices.exist(deviceLists, servername)) {
-              pipeWs(servername, service, conn, Devices.next(deviceLists, servername));
-              return;
-            }
-            copts.handleHttp(servername, conn);
-          }
-          else {
-            // redirect to https
-            copts.handleInsecureHttp(servername, conn);
-          }
-          return;
-        }
-      }
-
-      console.error("Got unexpected connection", str);
-      conn.write(JSON.stringify({ error: {
-        message: "not sure what you were trying to do there..."
-      , code: 'E_INVALID_PROTOCOL' }
-      }));
-      conn.end();
-    });
-    conn.on('error', function (err) {
-      console.error('[error] tcp socket raw TODO forward and close');
-      console.error(err);
-    });
-  }
-
   return {
     tcp: onTcpConnection
   , ws: onWsConnection
-  , isClientDomain: Devices.exist.bind(null, deviceLists)
+  , isClientDomain: Devices.exist.bind(null, copts.deviceLists)
   };
 };
