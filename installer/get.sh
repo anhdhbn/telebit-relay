@@ -1,4 +1,5 @@
 #!/bin/bash
+#<pre><code>
 
 # This is a 3 step process
 #   1. First we need to figure out whether to use wget or curl for fetching remote files
@@ -63,6 +64,7 @@ echo ""
 echo ""
 echo ""
 
+my_user="telebit"
 my_app="telebitd"
 my_bin="telebitd.js"
 my_name="Telebit Relay"
@@ -128,7 +130,31 @@ $my_node $TELEBITD_PATH/bin/$my_bin
 EOF
 chmod a+x $TELEBITD_PATH/bin/$my_app
 echo "Creating link to '$my_app' in /usr/local/bin"
-ln -sf $TELEBITD_PATH/bin/$my_app /usr/local/bin/$my_app
+echo "sudo ln -sf $TELEBITD_PATH/bin/$my_app /usr/local/bin/$my_app"
+sudo ln -sf $TELEBITD_PATH/bin/$my_app /usr/local/bin/$my_app
+
+set +e
+if type -p setcap >/dev/null 2>&1; then
+  echo ""
+  echo "Setting permissions to allow $my_app to run on port 80 and port 443 without sudo or root"
+  echo "sudo setcap cap_net_bind_service=+ep $TELEBITD_PATH/bin/node"
+  sudo setcap cap_net_bind_service=+ep $TELEBITD_PATH/bin/node
+fi
+set -e
+
+if [ -z "$(cat /etc/passwd | grep $my_user)" ]; then
+  echo ""
+  echo "Adding user $my_app"
+  echo "sudo adduser --home $TELEBITD_PATH --gecos '' --disabled-password $my_user"
+  sudo adduser --home $TELEBITD_PATH --gecos '' --disabled-password $my_user
+fi
+
+echo "Adding $my_app is a system service"
+echo "sudo rsync -av $TELEBITD_PATH/dist/etc/systemd/system/$my-app.service /etc/systemd/system/$my-app.service"
+sudo rsync -av $TELEBITD_PATH/dist/etc/systemd/system/$my-app.service /etc/systemd/system/$my-app.service
+sudo systemctl daemon-reload
+sudo systemctl enable $my_app
+sudo systemctl restart $my_app
 
 echo ""
 echo ""
