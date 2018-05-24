@@ -1,3 +1,5 @@
 servernames: []
 email: 'jon@example.com'
 agree_tos: true
+community_member: true
+vhost: /srv/www/:hostname

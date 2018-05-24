@@ -156,6 +156,10 @@ sudo systemctl daemon-reload
 sudo systemctl enable $my_app
 sudo systemctl restart $my_app
 
+echo "Adding example config"
+echo "sudo rsync -av examples/$my_app.yml /etc/$my_user/$my_app.yml"
+sudo rsync -av examples/$my_app.yml /etc/$my_user/$my_app.yml
+
 echo ""
 echo ""
 echo "Installed successfully. Try it out:"
