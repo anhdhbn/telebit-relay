@@ -1,5 +1,8 @@
-servernames: []
 email: 'jon@example.com'
 agree_tos: true
 community_member: true
+servernames: []
 vhost: /srv/www/:hostname
+greenlock:
+  store: le-store-certbot
+  config_dir: /opt/telebitd/acme

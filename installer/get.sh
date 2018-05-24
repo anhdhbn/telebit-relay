@@ -64,11 +64,24 @@ echo ""
 echo ""
 echo ""
 
+my_email=${1:-}
 my_user="telebit"
 my_app="telebitd"
 my_bin="telebitd.js"
 my_name="Telebit Relay"
 my_repo="telebitd.js"
+
+if [ -z "${my_email}" ]; then
+  echo ""
+  echo ""
+  echo "Telebit uses Greenlock for free automated ssl through Let's Encrypt."
+  echo ""
+  echo "To accept the Terms of Service for Telebit, Greenlock and Let's Encrypt,"
+  echo "please enter your email."
+  echo ""
+  echo "What's your email?"
+  my_email=
+fi
 
 if [ -z "${TELEBITD_PATH:-}" ]; then
   echo 'TELEBITD_PATH="'${TELEBITD_PATH:-}'"'
@@ -153,8 +166,6 @@ echo "Adding $my_app is a system service"
 echo "sudo rsync -av $TELEBITD_PATH/dist/etc/systemd/system/$my-app.service /etc/systemd/system/$my-app.service"
 sudo rsync -av $TELEBITD_PATH/dist/etc/systemd/system/$my-app.service /etc/systemd/system/$my-app.service
 sudo systemctl daemon-reload
-sudo systemctl enable $my_app
-sudo systemctl restart $my_app
 
 echo "Adding example config"
 echo "sudo rsync -av examples/$my_app.yml /etc/$my_user/$my_app.yml"
@@ -162,10 +173,24 @@ sudo rsync -av examples/$my_app.yml /etc/$my_user/$my_app.yml
 
 echo ""
 echo ""
-echo "Installed successfully. Try it out:"
+echo "The example config file /etc/telebit/telebitd.yml demonstrates how to"
+echo "contribute telemetrics and receive other rare but relevant updates"
+echo "(probably once per quarter or less) such as important notes on"
+echo "a new release, an important API change, etc - no spam."
 echo ""
-echo "  $my_app --help"
+echo "Please edit the config file to meet your needs before starting."
 echo ""
+
+echo ""
+echo ""
+echo "Installed successfully. Last step, start the service:"
+echo ""
+echo "    sudo systemctl enable $my_app"
+echo "    sudo systemctl start $my_app"
+echo ""
+echo "Or manually"
+echo ""
+echo "    $my_app --config /etc/telebit/telebitd.yml"
 echo ""
 
 #sudo setcap cap_net_bind_service=+ep $TELEBITD_PATH/bin/node
