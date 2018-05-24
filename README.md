@@ -36,7 +36,7 @@ for convenience.
 You can customize the installation:
 
 ```bash
-export NODEJS_VER=v8.11.1
+export NODEJS_VER=v8.11.2
 export TELEBITD_PATH=/opt/telebitd
 curl -fsS https://get.telebit.cloud/ | bash
 ```

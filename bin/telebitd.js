@@ -6,7 +6,7 @@ var pkg = require('../package.json');
 
 var argv = process.argv.slice(2);
 var telebitd = require('../telebitd.js');
-var greenlock = require('greenlock');
+var Greenlock = require('greenlock');
 
 var confIndex = argv.indexOf('--config');
 var confpath;
@@ -55,6 +55,80 @@ function applyConfig(config) {
     console.info("");
     console.info("");
   }
+
+  function approveDomains(opts, certs, cb) {
+    console.log('[debug] approveDomains', opts.domains);
+    // This is where you check your database and associated
+    // email addresses with domains and agreements and such
+
+    // The domains being approved for the first time are listed in opts.domains
+    // Certs being renewed are listed in certs.altnames
+    if (certs) {
+      opts.domains = certs.altnames;
+      cb(null, { options: opts, certs: certs });
+      return;
+    }
+
+    if (state.config.vhost) {
+      console.log('[sni] vhost checking is turned on');
+      var vhost = state.config.vhost.replace(/:hostname/, opts.domains[0]);
+      require('fs').readdir(vhost, function (err, nodes) {
+        console.log('[sni] checking fs vhost');
+        if (err) { check(); return; } 
+        if (nodes) { approve(); }
+      });
+      return;
+    }
+
+    function approve() {
+      opts.email = state.config.email;
+      opts.agreeTos = state.config.agreeTos;
+      opts.challenges = {
+        // TODO dns-01
+        'http-01': require('le-challenge-fs').create({ webrootPath: '/tmp/acme-challenges' })
+      };
+      opts.communityMember = state.config.communityMember;
+      cb(null, { options: opts, certs: certs });
+    }
+
+    function check() {
+      console.log('[sni] checking servername');
+      if (-1 !== state.servernames.indexOf(opts.domain) || -1 !== (state._servernames||[]).indexOf(opts.domain)) {
+        approve();
+      } else {
+        cb(new Error("failed the approval chain '" + opts.domains[0] + "'"));
+      }
+      console.log('Approve Domains cb');
+    }
+    check();
+  }
+
+/*
+  if (!config.email || !config.agreeTos) {
+    console.error("You didn't specify --email <EMAIL> and --agree-tos");
+    console.error("(required for ACME / Let's Encrypt / Greenlock TLS/SSL certs)");
+    console.error("");
+    process.exit(1);
+  }
+*/
+
+  state.greenlock = Greenlock.create({
+
+    version: 'draft-11'
+  , server: 'https://acme-v02.api.letsencrypt.org/directory'
+  //, server: 'https://acme-staging-v02.api.letsencrypt.org/directory'
+
+  , store: require('le-store-certbot').create({ debug: true, webrootPath: '/tmp/acme-challenges' })
+
+  , approveDomains: approveDomains
+
+  , configDir: '/root/acme'
+  , debug: true
+
+  //, approvedDomains: program.servernames
+
+  });
+
   require('../handlers').create(state); // adds directly to config for now...
 
   //require('cluster-store').create().then(function (store) {
@@ -77,60 +151,6 @@ function applyConfig(config) {
       state.tcp[port].on('connection', netConnHandlers.tcp);
     });
   //});
-
-  function approveDomains(opts, certs, cb) {
-    console.log('Approve Domains', opts.domains);
-    // This is where you check your database and associated
-    // email addresses with domains and agreements and such
-
-    // The domains being approved for the first time are listed in opts.domains
-    // Certs being renewed are listed in certs.altnames
-    if (certs) {
-      opts.domains = certs.altnames;
-    } else {
-      if (-1 !== state.servernames.indexOf(opts.domain) || -1 !== (state._servernames||[]).indexOf(opts.domain)) {
-        opts.email = state.config.email;
-        opts.agreeTos = state.config.agreeTos;
-        opts.challenges = {
-          // TODO dns-01
-          'http-01': require('le-challenge-fs').create({ webrootPath: '/tmp/acme-challenges' })
-        };
-        opts.communityMember = state.config.communityMember;
-      }
-    }
-
-    // NOTE: you can also change other options such as `challengeType` and `challenge`
-    // opts.challengeType = 'http-01';
-    // opts.challenge = require('le-challenge-fs').create({});
-
-    console.log('Approve Domains cb');
-    cb(null, { options: opts, certs: certs });
-  }
-
-/*
-  if (!config.email || !config.agreeTos) {
-    console.error("You didn't specify --email <EMAIL> and --agree-tos");
-    console.error("(required for ACME / Let's Encrypt / Greenlock TLS/SSL certs)");
-    console.error("");
-    process.exit(1);
-  }
-*/
-
-  state.greenlock = greenlock.create({
-
-    version: 'draft-11'
-  , server: 'https://acme-staging-v02.api.letsencrypt.org/directory'
-
-  , store: require('le-store-certbot').create({ debug: true, webrootPath: '/tmp/acme-challenges' })
-
-  , approveDomains: approveDomains
-
-  , configDir: '/root/acme'
-  , debug: true
-
-  //, approvedDomains: program.servernames
-
-  });
 }
 
 require('fs').readFile(confpath, 'utf8', function (err, text) {
