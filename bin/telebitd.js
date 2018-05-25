@@ -46,7 +46,7 @@ function applyConfig(config) {
   state.config = config;
   state.servernames = config.servernames || [];
   state.secret = state.config.secret;
-  if (state.secret) {
+  if (!state.secret) {
     state.secret = require('crypto').randomBytes(16).toString('hex');
     console.info("");
     console.info("Secret for this session:");
@@ -54,6 +54,12 @@ function applyConfig(config) {
     console.info("\t" + state.secret);
     console.info("");
     console.info("");
+  }
+  if (!state.config.greenlock) {
+    state.config.greenlock = {};
+  }
+  if (!state.config.greenlock.configDir) {
+    state.config.greenlock.configDir = require('os').homedir() + require('path').sep + 'acme';
   }
 
   function approveDomains(opts, certs, cb) {
@@ -122,7 +128,7 @@ function applyConfig(config) {
 
   , approveDomains: approveDomains
 
-  , configDir: '/root/acme'
+  , configDir: state.config.configDir
   , debug: true
 
   //, approvedDomains: program.servernames
