@@ -81,6 +81,8 @@ if [ -z "${my_email}" ]; then
   echo "please enter your email."
   echo ""
   read -p "email: " my_email
+  echo ""
+  sleep 2
 fi
 
 if [ -z "${TELEBITD_PATH:-}" ]; then
@@ -89,7 +91,6 @@ if [ -z "${TELEBITD_PATH:-}" ]; then
 fi
 
 echo "Installing $my_name to '$TELEBITD_PATH'"
-echo ""
 
 echo "Installing node.js dependencies into $TELEBITD_PATH"
 # v10.2+ has much needed networking fixes, but breaks ursa. v9.x has severe networking bugs. v8.x has working ursa, but requires tls workarounds"
@@ -107,9 +108,6 @@ my_npm="$my_node $TELEBITD_PATH/bin/npm"
 my_tmp="$TELEBITD_PATH/tmp"
 mkdir -p $my_tmp
 
-echo "Installing $my_name into $TELEBITD_PATH"
-echo ""
-
 echo "sudo mkdir -p '$TELEBITD_PATH'"
 sudo mkdir -p "$TELEBITD_PATH"
 echo "sudo mkdir -p '/etc/$my_user/'"
@@ -125,7 +123,7 @@ if [ -n "$my_unzip" ]; then
   rm -f $my_tmp/$my_app-$my_tree.zip
   http_get https://git.coolaj86.com/coolaj86/$my_repo/archive/$my_tree.zip $my_tmp/$my_app-$my_tree.zip
   # -o means overwrite, and there is no option to strip
-  $my_unzip -o $my_tmp/$my_app-$my_tree.zip -d $TELEBITD_PATH/ > /dev/null
+  $my_unzip -o $my_tmp/$my_app-$my_tree.zip -d $TELEBITD_PATH/ > /dev/null 2>&1
   cp -ar  $TELEBITD_PATH/$my_repo/* $TELEBITD_PATH/ > /dev/null
   rm -rf $TELEBITD_PATH/$my_bin
 elif [ -n "$my_tar" ]; then
@@ -148,28 +146,24 @@ cat << EOF > $TELEBITD_PATH/bin/$my_app
 $my_node $TELEBITD_PATH/bin/$my_bin
 EOF
 chmod a+x $TELEBITD_PATH/bin/$my_app
-echo "Creating link to '$my_app' in /usr/local/bin"
 echo "sudo ln -sf $TELEBITD_PATH/bin/$my_app /usr/local/bin/$my_app"
 sudo ln -sf $TELEBITD_PATH/bin/$my_app /usr/local/bin/$my_app
 
 set +e
 if type -p setcap >/dev/null 2>&1; then
-  echo ""
-  echo "Setting permissions to allow $my_app to run on port 80 and port 443 without sudo or root"
+  #echo "Setting permissions to allow $my_app to run on port 80 and port 443 without sudo or root"
   echo "sudo setcap cap_net_bind_service=+ep $TELEBITD_PATH/bin/node"
   sudo setcap cap_net_bind_service=+ep $TELEBITD_PATH/bin/node
 fi
 set -e
 
 if [ -z "$(cat /etc/passwd | grep $my_user)" ]; then
-  echo ""
-  echo "### Adding user $my_app"
   echo "sudo adduser --home $TELEBITD_PATH --gecos '' --disabled-password $my_user"
   sudo adduser --home $TELEBITD_PATH --gecos '' --disabled-password $my_user >/dev/null 2>&1
 fi
 
 if [ ! -f "/etc/$my_user/$my_app.yml" ]; then
-  echo "Creating config file from template. sudo may be required"
+  echo "### Creating config file from template. sudo may be required"
   #echo "sudo rsync -a examples/$my_app.yml /etc/$my_user/$my_app.yml"
   sudo bash -c "echo 'email: $my_email' >> /etc/$my_user/$my_app.yml"
   sudo bash -c "echo 'secret: $my_secret' >> /etc/$my_user/$my_app.yml"
@@ -187,9 +181,15 @@ sudo systemctl daemon-reload
 echo "sudo systemctl enable $my_app"
 sudo systemctl enable $my_app
 echo "sudo systemctl start $my_app"
-sudo systemctl start $my_app
+sudo systemctl restart $my_app
 
+sleep 1
 echo ""
+echo ""
+echo ""
+echo "=============================================="
+echo "  Privacy Settings in Config"
+echo "=============================================="
 echo ""
 echo "The example config file /etc/telebit/telebitd.yml opts-in to"
 echo "contributing telemetrics and receiving infrequent relevant updates"
@@ -198,23 +198,23 @@ echo "a new release, an important API change, etc. No spam."
 echo ""
 echo "Please edit the config file to meet your needs before starting."
 echo ""
+sleep 2
 
 echo ""
 echo ""
-echo "==================================="
+echo "=============================================="
 echo "Installed successfully. Last steps:"
-echo "==================================="
+echo "=============================================="
 echo ""
-echo "Edit the config, if desired:"
+echo "Edit the config and restart, if desired:"
 echo ""
 echo "    sudo vim /etc/telebit/telebitd.yml"
+echo "    sudo systemctl restart $my_app"
 echo ""
-echo "Enabled and start the service:"
+echo "Or disabled the service and start manually:"
 echo ""
-echo "    sudo systemctl enable $my_app"
-echo "    sudo systemctl start $my_app"
-echo ""
-echo "Or run manually:"
-echo ""
+echo "    sudo systemctl stop $my_app"
+echo "    sudo systemctl disable $my_app"
 echo "    $my_app --config /etc/$my_user/$my_app.yml"
 echo ""
+sleep 1
