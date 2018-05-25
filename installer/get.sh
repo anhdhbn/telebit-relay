@@ -65,6 +65,7 @@ echo ""
 echo ""
 
 my_email=${1:-}
+my_secret=""
 my_user="telebit"
 my_app="telebitd"
 my_bin="telebitd.js"
@@ -91,14 +92,9 @@ fi
 echo "Installing $my_name to '$TELEBITD_PATH'"
 echo ""
 
-echo "sudo mkdir -p '$TELEBITD_PATH'"
-sudo mkdir -p "$TELEBITD_PATH"
-echo "sudo chown -R $(whoami) '$TELEBITD_PATH'"
-sudo chown -R $(whoami) "$TELEBITD_PATH"
-
 echo "Installing node.js dependencies into $TELEBITD_PATH"
-# until node v10.x gets fix for ursa we have no advantage to switching from 8.x
-export NODEJS_VER=v8.11.1
+# v10.2+ has much needed networking fixes, but breaks ursa. v9.x has severe networking bugs. v8.x has working ursa, but requires tls workarounds"
+export NODEJS_VER="v10"
 export NODE_PATH="$TELEBITD_PATH/lib/node_modules"
 export NPM_CONFIG_PREFIX="$TELEBITD_PATH"
 export PATH="$TELEBITD_PATH/bin:$PATH"
@@ -107,12 +103,25 @@ http_bash https://git.coolaj86.com/coolaj86/node-installer.sh/raw/branch/master/
 
 my_tree="master"
 my_node="$TELEBITD_PATH/bin/node"
+my_secret=$($my_node -e "crypto.randomBytes(16).toString('hex')")
 my_npm="$my_node $TELEBITD_PATH/bin/npm"
 my_tmp="$TELEBITD_PATH/tmp"
 mkdir -p $my_tmp
 
 echo "Installing $my_name into $TELEBITD_PATH"
+echo ""
+
+echo "sudo mkdir -p '$TELEBITD_PATH'"
+sudo mkdir -p "$TELEBITD_PATH"
+echo "sudo mkdir -p '/etc/$my_user/'"
+sudo mkdir -p "/etc/$my_user/"
+echo "sudo chown -R $(whoami) '$TELEBITD_PATH' '/etc/$my_user'"
+sudo chown -R $(whoami) "$TELEBITD_PATH" "/etc/$my_user"
+
 set +e
+#https://git.coolaj86.com/coolaj86/telebitd.js.git
+#https://git.coolaj86.com/coolaj86/telebitd.js/archive/:tree:.tar.gz
+#https://git.coolaj86.com/coolaj86/telebitd.js/archive/:tree:.zip
 my_unzip=$(type -p unzip)
 my_tar=$(type -p tar)
 if [ -n "$my_unzip" ]; then
@@ -167,34 +176,41 @@ echo "sudo rsync -av $TELEBITD_PATH/dist/etc/systemd/system/$my-app.service /etc
 sudo rsync -av $TELEBITD_PATH/dist/etc/systemd/system/$my-app.service /etc/systemd/system/$my-app.service
 sudo systemctl daemon-reload
 
-echo "Adding example config"
-echo "sudo rsync -av examples/$my_app.yml /etc/$my_user/$my_app.yml"
-sudo rsync -av examples/$my_app.yml /etc/$my_user/$my_app.yml
+if [ ! -f "/etc/$my_user/$my_app.yml" ]; then
+  echo "Creating config file from template. sudo may be required"
+  #echo "sudo rsync -av examples/$my_app.yml /etc/$my_user/$my_app.yml"
+  sudo bash -c "echo 'email: $my_email' >> /etc/$my_user/$my_app.yml"
+  sudo bash -c "echo 'secret: $my_secret' >> /etc/$my_user/$my_app.yml"
+  sudo bash -c "cat examples/$my_app.yml.tpl >> /etc/$my_user/$my_app.yml"
+  sudo bash -c "echo 'servernames: []' >> /etc/$my_user/$my_app.yml"
+fi
 
 echo ""
 echo ""
-echo "The example config file /etc/telebit/telebitd.yml demonstrates how to"
-echo "contribute telemetrics and receive other rare but relevant updates"
+echo "The example config file /etc/telebit/telebitd.yml opts-in to"
+echo "contributing telemetrics and receiving infrequent relevant updates"
 echo "(probably once per quarter or less) such as important notes on"
-echo "a new release, an important API change, etc - no spam."
+echo "a new release, an important API change, etc. No spam."
 echo ""
 echo "Please edit the config file to meet your needs before starting."
 echo ""
 
 echo ""
 echo ""
-echo "Installed successfully. Last step, start the service:"
+echo "==================================="
+echo "Installed successfully. Last steps:"
+echo "==================================="
+echo ""
+echo "Edit the config, if desired:"
+echo ""
+echo "    sudo vim /etc/telebit/telebitd.yml"
+echo ""
+echo "Enabled and start the service:"
 echo ""
 echo "    sudo systemctl enable $my_app"
 echo "    sudo systemctl start $my_app"
 echo ""
-echo "Or manually"
+echo "Or run manually:"
 echo ""
-echo "    $my_app --config /etc/telebit/telebitd.yml"
+echo "    $my_app --config /etc/$my_user/$my_app.yml"
 echo ""
-
-#sudo setcap cap_net_bind_service=+ep $TELEBITD_PATH/bin/node
-
-#https://git.coolaj86.com/coolaj86/telebitd.js.git
-#https://git.coolaj86.com/coolaj86/telebitd.js/archive/:tree:.tar.gz
-#https://git.coolaj86.com/coolaj86/telebitd.js/archive/:tree:.zip
