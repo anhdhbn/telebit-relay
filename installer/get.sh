@@ -65,6 +65,7 @@ echo ""
 echo ""
 
 my_email=${1:-}
+my_servername=${2:-}
 my_secret=""
 my_user="telebit"
 my_app="telebitd"
@@ -82,8 +83,16 @@ if [ -z "${my_email}" ]; then
   echo ""
   read -p "email: " my_email
   echo ""
-  sleep 2
 fi
+
+if [ -z "${my_servername}" ]; then
+  echo "What is the domain of this server (for admin interface)?"
+  echo ""
+  read -p "domain (ex: telebit.example.com): " my_servername
+  echo ""
+fi
+sleep 2
+
 
 if [ -z "${TELEBITD_PATH:-}" ]; then
   echo 'TELEBITD_PATH="'${TELEBITD_PATH:-}'"'
@@ -94,7 +103,8 @@ echo "Installing $my_name to '$TELEBITD_PATH'"
 
 echo "Installing node.js dependencies into $TELEBITD_PATH"
 # v10.2+ has much needed networking fixes, but breaks ursa. v9.x has severe networking bugs. v8.x has working ursa, but requires tls workarounds"
-export NODEJS_VER="v10"
+NODEJS_VER="${NODEJS_VER:-v10}"
+export NODEJS_VER
 export NODE_PATH="$TELEBITD_PATH/lib/node_modules"
 export NPM_CONFIG_PREFIX="$TELEBITD_PATH"
 export PATH="$TELEBITD_PATH/bin:$PATH"
@@ -167,6 +177,7 @@ if [ ! -f "/etc/$my_user/$my_app.yml" ]; then
   #echo "sudo rsync -a examples/$my_app.yml /etc/$my_user/$my_app.yml"
   sudo bash -c "echo 'email: $my_email' >> /etc/$my_user/$my_app.yml"
   sudo bash -c "echo 'secret: $my_secret' >> /etc/$my_user/$my_app.yml"
+  sudo bash -c "echo 'servernames: [ $my_servername ]' >> /etc/$my_user/$my_app.yml"
   sudo bash -c "cat examples/$my_app.yml.tpl >> /etc/$my_user/$my_app.yml"
   sudo bash -c "echo 'servernames: []' >> /etc/$my_user/$my_app.yml"
 fi

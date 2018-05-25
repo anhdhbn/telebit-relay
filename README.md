@@ -26,8 +26,10 @@ Mac & Linux
 Open Terminal and run this install script:
 
 ```bash
-curl -fsS https://get.telebit.cloud/ | bash
+curl -fsSL https://get.telebit.cloud/relay | bash
 ```
+
+Of course, feel free to inspect the install script before you run it.
 
 This will install Telebit Relay to `/opt/telebitd` and
 put a symlink to `/opt/telebitd/bin/telebitd` in `/usr/local/bin/telebitd`
@@ -36,13 +38,19 @@ for convenience.
 You can customize the installation:
 
 ```bash
-export NODEJS_VER=v8.11.2
+export NODEJS_VER=v10.2
 export TELEBITD_PATH=/opt/telebitd
-curl -fsS https://get.telebit.cloud/ | bash
+curl -fsSL https://get.telebit.cloud/relay
 ```
 
-This will change which version of node.js is bundled with Telebit Relay
+That will change the bundled version of node.js is bundled with Telebit Relay
 and the path to which Telebit Relay installs.
+
+You can get rid of the tos + email and server domain name prompts by providing them right away:
+
+```bash
+curl -fsSL https://get.telebit.cloud/relay | bash -- jon@example.com telebit.example.com
+```
 
 Windows & Node.js
 -----------------
@@ -55,22 +63,6 @@ Windows & Node.js
 
 There is [a bug](https://github.com/nodejs/node/issues/20241) in node v9.x that causes telebitd to crash.
 
-Service Install
-===
-
-TODO automate this:
-
-`./dist/etc/systemd/system/telebitd.service` should be copied to `/etc/systemd/system/telebitd.service`.
-
-The user and group `telebit` should be created.
-
-**Privileged Ports without sudo**:
-
-```bash
-# Linux
-sudo setcap 'cap_net_bind_service=+ep' $(which node)
-```
-
 Usage
 ====
 
@@ -82,13 +74,20 @@ Options
 
 `/etc/telebit/telebitd.yml:`
 ```
-servernames:
+email: 'jon@example.com'   # must be valid (for certificate recovery and security alerts)
+agree_tos: true            # agree to the Telebit, Greenlock, and Let's Encrypt TOSes
+community_member: true     # receive infrequent relevant but non-critical updates
+telemetry: true            # contribute to project telemetric data
+secret: ''                 # JWT authorization secret. Generate like so:
+                           # node -e "console.log(crypto.randomBytes(16).toString('hex'))"
+servernames:               # hostnames that direct to the Telebit Relay admin console
   - telebit.example.com
   - telebit.example.net
-email: 'jon@example.com'
-agree_tos: true
-community_member: true
-secret: 'xxxyyyzzzaaabbbccc'
+vhost: /srv/www/:hostname  # securely serve local sites from this path (or false)
+                           # (uses template string, i.e. /var/www/:hostname/public)
+greenlock:
+  store: le-store-certbot  # certificate storage plugin
+  config_dir: /etc/acme    # directory for ssl certificates
 ```
 
 Security
@@ -112,8 +111,11 @@ Why?
 
 We created this for anyone to use on their own server or VPS,
 but those generally cost $5 - $20 / month and so it's probably
-cheaper to purchase data transfer (which we supply, obviously),
-which is only $1/month for most people.
+cheaper to purchase data transfer, which is only $1/month for
+most people.
+
+In keeping with our no lock-in policy, we release a version of
+the server for anyone to use independently.
 
 TODO show how to do on 
 
@@ -121,4 +123,18 @@ TODO show how to do on
 	* Heroku (zero cost)
 	* Chunk Host (best deal per TB/month)
 
+Useful Tidbits
+===
 
+## As a systemd service
+
+`./dist/etc/systemd/system/telebitd.service` should be copied to `/etc/systemd/system/telebitd.service`.
+
+The user and group `telebit` should be created.
+
+## Use privileged ports without sudo
+
+```bash
+# Linux
+sudo setcap 'cap_net_bind_service=+ep' $(which node)
+```
