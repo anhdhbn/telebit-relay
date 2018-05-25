@@ -80,8 +80,7 @@ if [ -z "${my_email}" ]; then
   echo "To accept the Terms of Service for Telebit, Greenlock and Let's Encrypt,"
   echo "please enter your email."
   echo ""
-  echo "What's your email?"
-  my_email=
+  read -p "email: " my_email
 fi
 
 if [ -z "${TELEBITD_PATH:-}" ]; then
@@ -103,7 +102,7 @@ http_bash https://git.coolaj86.com/coolaj86/node-installer.sh/raw/branch/master/
 
 my_tree="master"
 my_node="$TELEBITD_PATH/bin/node"
-my_secret=$($my_node -e "crypto.randomBytes(16).toString('hex')")
+my_secret=$($my_node -e "console.info(crypto.randomBytes(16).toString('hex'))")
 my_npm="$my_node $TELEBITD_PATH/bin/npm"
 my_tmp="$TELEBITD_PATH/tmp"
 mkdir -p $my_tmp
@@ -115,8 +114,6 @@ echo "sudo mkdir -p '$TELEBITD_PATH'"
 sudo mkdir -p "$TELEBITD_PATH"
 echo "sudo mkdir -p '/etc/$my_user/'"
 sudo mkdir -p "/etc/$my_user/"
-echo "sudo chown -R $(whoami) '$TELEBITD_PATH' '/etc/$my_user'"
-sudo chown -R $(whoami) "$TELEBITD_PATH" "/etc/$my_user"
 
 set +e
 #https://git.coolaj86.com/coolaj86/telebitd.js.git
@@ -166,24 +163,31 @@ set -e
 
 if [ -z "$(cat /etc/passwd | grep $my_user)" ]; then
   echo ""
-  echo "Adding user $my_app"
+  echo "### Adding user $my_app"
   echo "sudo adduser --home $TELEBITD_PATH --gecos '' --disabled-password $my_user"
-  sudo adduser --home $TELEBITD_PATH --gecos '' --disabled-password $my_user
+  sudo adduser --home $TELEBITD_PATH --gecos '' --disabled-password $my_user >/dev/null 2>&1
 fi
-
-echo "Adding $my_app is a system service"
-echo "sudo rsync -av $TELEBITD_PATH/dist/etc/systemd/system/$my-app.service /etc/systemd/system/$my-app.service"
-sudo rsync -av $TELEBITD_PATH/dist/etc/systemd/system/$my-app.service /etc/systemd/system/$my-app.service
-sudo systemctl daemon-reload
 
 if [ ! -f "/etc/$my_user/$my_app.yml" ]; then
   echo "Creating config file from template. sudo may be required"
-  #echo "sudo rsync -av examples/$my_app.yml /etc/$my_user/$my_app.yml"
+  #echo "sudo rsync -a examples/$my_app.yml /etc/$my_user/$my_app.yml"
   sudo bash -c "echo 'email: $my_email' >> /etc/$my_user/$my_app.yml"
   sudo bash -c "echo 'secret: $my_secret' >> /etc/$my_user/$my_app.yml"
   sudo bash -c "cat examples/$my_app.yml.tpl >> /etc/$my_user/$my_app.yml"
   sudo bash -c "echo 'servernames: []' >> /etc/$my_user/$my_app.yml"
 fi
+
+echo "sudo chown -R $my_user '$TELEBITD_PATH' '/etc/$my_user'"
+sudo chown -R $my_user "$TELEBITD_PATH" "/etc/$my_user"
+
+echo "### Adding $my_app is a system service"
+echo "sudo rsync -a $TELEBITD_PATH/dist/etc/systemd/system/$my_app.service /etc/systemd/system/$my_app.service"
+sudo rsync -a $TELEBITD_PATH/dist/etc/systemd/system/$my_app.service /etc/systemd/system/$my_app.service
+sudo systemctl daemon-reload
+echo "sudo systemctl enable $my_app"
+sudo systemctl enable $my_app
+echo "sudo systemctl start $my_app"
+sudo systemctl start $my_app
 
 echo ""
 echo ""
