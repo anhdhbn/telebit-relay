@@ -60,10 +60,6 @@ detect_http_get
 ##       END HTTP_GET        ##
 ###############################
 
-echo ""
-echo ""
-echo ""
-
 my_email=${1:-}
 my_servername=${2:-}
 my_secret=""
@@ -84,7 +80,7 @@ if [ -z "${my_email}" ]; then
   read -p "email: " my_email
   echo ""
   # UX - just want a smooth transition
-  sleep 1
+  sleep 0.5
 fi
 
 if [ -z "${my_servername}" ]; then
@@ -93,9 +89,10 @@ if [ -z "${my_servername}" ]; then
   read -p "domain (ex: telebit.example.com): " my_servername
   echo ""
   # UX - just want a smooth transition
-  sleep 1
+  sleep 0.5
 fi
 
+echo ""
 
 if [ -z "${TELEBITD_PATH:-}" ]; then
   echo 'TELEBITD_PATH="'${TELEBITD_PATH:-}'"'

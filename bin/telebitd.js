@@ -120,15 +120,15 @@ function applyConfig(config) {
 
   state.greenlock = Greenlock.create({
 
-    version: 'draft-11'
-  , server: 'https://acme-v02.api.letsencrypt.org/directory'
+    version: state.config.greenlock.version || 'draft-11'
+  , server: state.config.greenlock.server || 'https://acme-v02.api.letsencrypt.org/directory'
   //, server: 'https://acme-staging-v02.api.letsencrypt.org/directory'
 
   , store: require('le-store-certbot').create({ debug: true, webrootPath: '/tmp/acme-challenges' })
 
   , approveDomains: approveDomains
 
-  , configDir: state.config.configDir
+  , configDir: state.config.greenlock.configDir
   , debug: true
 
   //, approvedDomains: program.servernames

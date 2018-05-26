@@ -1,12 +1,15 @@
-email: 'jon@example.com'   # must be valid (for certificate recovery and security alerts)
-agree_tos: true	           # agree to the Telebit, Greenlock, and Let's Encrypt TOSes
-community_member: true     # receive infrequent relevant updates
-telemetry: true            # contribute to project telemetric data
-servernames:               # hostnames that direct to the Telebit Relay admin console
+email: 'jon@example.com'       # must be valid (for certificate recovery and security alerts)
+agree_tos: true                # agree to the Telebit, Greenlock, and Let's Encrypt TOSes
+community_member: true         # receive infrequent relevant updates
+telemetry: true                # contribute to project telemetric data
+servernames:                   # hostnames that direct to the Telebit Relay admin console
   - telebit.example.com
   - telebit.example.net
-vhost: /srv/www/:hostname  # load secure websites at this path (uses template string, i.e. /var/www/:hostname/public)
+vhost: /srv/www/:hostname      # load secure websites at this path (uses template string, i.e. /var/www/:hostname/public)
 greenlock:
-  store: le-store-certbot  # certificate storage plugin
-  config_dir: /etc/acme    # directory for ssl certificates
-secret: ''                 # generate with node -e "console.log(crypto.randomBytes(16).toString('hex'))"
+  version: 'draft-11'
+  server: 'https://acme-v02.api.letsencrypt.org/directory'
+  store:
+    strategy: le-store-certbot # certificate storage plugin
+  config_dir: /etc/acme        # directory for ssl certificates
+secret: ''                     # generate with node -e "console.log(crypto.randomBytes(16).toString('hex'))"
