@@ -45,7 +45,7 @@ module.exports.create = function (state) {
 
   // Probably something that needs to be redirected to https
   function redirectHttpsAndClose(req, res) {
-    res.setHeader('Connection', 'close');
+    //res.setHeader('Connection', 'close');
     redirectHttps(req, res);
   }
   state.httpInsecureServer = http.createServer(
