@@ -129,7 +129,7 @@ function applyConfig(config) {
   , approveDomains: approveDomains
 
   , configDir: state.config.greenlock.configDir
-  , debug: true
+  , debug: state.config.debug || state.config.greenlock.debug
 
   //, approvedDomains: program.servernames
 

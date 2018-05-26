@@ -118,8 +118,12 @@ module.exports.create = function (state) {
   var serveAdmin = require('serve-static')(__dirname + '/admin', { redirect: true });
   var finalhandler = require('finalhandler');
   state.httpTunnelServer = http.createServer(function (req, res) {
-    console.log('req.socket.encrypted', req.socket.encrypted);
-    serveAdmin(req, res, finalhandler(req, res));
+    console.log('admin req.socket.encrypted', req.socket.encrypted);
+    res.setHeader('connection', 'close');
+    serveAdmin(req, res, function () {
+      console.log("serveAdmin fail");
+      finalhandler(req, res)
+    });
   });
   Object.keys(state.tlsOptions).forEach(function (key) {
     tunnelAdminTlsOpts[key] = state.tlsOptions[key];
