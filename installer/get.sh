@@ -83,6 +83,8 @@ if [ -z "${my_email}" ]; then
   echo ""
   read -p "email: " my_email
   echo ""
+  # UX - just want a smooth transition
+  sleep 1
 fi
 
 if [ -z "${my_servername}" ]; then
@@ -90,8 +92,9 @@ if [ -z "${my_servername}" ]; then
   echo ""
   read -p "domain (ex: telebit.example.com): " my_servername
   echo ""
+  # UX - just want a smooth transition
+  sleep 1
 fi
-sleep 2
 
 
 if [ -z "${TELEBITD_PATH:-}" ]; then
@@ -179,7 +182,6 @@ if [ ! -f "/etc/$my_user/$my_app.yml" ]; then
   sudo bash -c "echo 'secret: $my_secret' >> /etc/$my_user/$my_app.yml"
   sudo bash -c "echo 'servernames: [ $my_servername ]' >> /etc/$my_user/$my_app.yml"
   sudo bash -c "cat examples/$my_app.yml.tpl >> /etc/$my_user/$my_app.yml"
-  sudo bash -c "echo 'servernames: []' >> /etc/$my_user/$my_app.yml"
 fi
 
 echo "sudo chown -R $my_user '$TELEBITD_PATH' '/etc/$my_user'"
