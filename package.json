@@ -1,6 +1,6 @@
 {
   "name": "telebitd",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "Friends don't let friends localhost. Expose your bits with a secure connection even from behind NAT, Firewalls, in a box, with a fox, on a train or in a plane... or a Raspberry Pi in your closet. An attempt to create a better localtunnel.me server, a more open ngrok. Uses Automated HTTPS (Free SSL) via ServerName Indication (SNI). Can also tunnel tls and plain tcp.",
   "main": "telebitd.js",
   "bin": {
