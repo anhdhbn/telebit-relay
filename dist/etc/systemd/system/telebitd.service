@@ -13,7 +13,7 @@ Wants=network-online.target systemd-networkd-wait-online.service
 # Restart on crash (bad signal), but not on 'clean' failure (error exit code)
 # Allow up to 3 restarts within 10 seconds
 # (it's unlikely that a user or properly-running script will do this)
-Restart=on-abnormal
+Restart=on-failure
 StartLimitInterval=10
 StartLimitBurst=3
 
