@@ -100,7 +100,7 @@ Even though the traffic is encrypted end-to-end, you can't just trust any Telebi
 willy-nilly.
 
 A man-in-the-middle attack is possible using Let's Encrypt since an evil Telebit Relay
-would be able to complete the http-01 and tls-sni-01 challenges without a problem
+would be able to complete the http-01 challenges without a problem
 (since that's where your DNS is pointed when you use the service).
 
 Also, the traffic could still be copied and stored for decryption is some era when quantum
