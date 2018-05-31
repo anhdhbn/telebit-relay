@@ -2,7 +2,7 @@
 
 var http = require('http');
 var tls = require('tls');
-var wrapSocket = require('tunnel-packer').wrapSocket;
+var wrapSocket = require('proxy-packer').wrapSocket;
 var redirectHttps = require('redirect-https')();
 
 function noSniCallback(tag) {
