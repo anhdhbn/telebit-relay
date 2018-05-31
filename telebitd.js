@@ -261,7 +261,7 @@ module.exports.create = function (state) {
       }
 
     , onmessage: function (tun) {
-        var cid = packer.addrToId(tun);
+        var cid = Packer.addrToId(tun);
         console.log("remote '" + logName() + "' has data for '" + cid + "'", tun.data.byteLength);
 
         var browserConn = getBrowserConn(cid);

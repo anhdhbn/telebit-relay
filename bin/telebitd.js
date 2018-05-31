@@ -154,7 +154,7 @@ function applyConfig(config) {
       state.tcp[port].listen(port, function () {
         console.log('listening plain TCP on ' + port);
       });
-      state.tcp[port].on('connection', netConnHandlers.tcp);
+      state.tcp[port].on('connection', function (conn) { netConnHandlers.tcp(conn, port); });
     });
   //});
 }
