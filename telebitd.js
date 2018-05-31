@@ -3,7 +3,7 @@
 var url = require('url');
 var PromiseA = require('bluebird');
 var jwt = require('jsonwebtoken');
-var packer = require('tunnel-packer');
+var Packer = require('proxy-packer');
 
 function timeoutPromise(duration) {
   return new PromiseA(function (resolve) {
@@ -14,17 +14,17 @@ function timeoutPromise(duration) {
 var Devices = require('./lib/device-tracker');
 
 module.exports.store = { Devices: Devices };
-module.exports.create = function (copts) {
-  copts.deviceLists = {};
+module.exports.create = function (state) {
+  state.deviceLists = {};
   //var deviceLists = {};
-  var activityTimeout = copts.activityTimeout || 2*60*1000;
-  var pongTimeout = copts.pongTimeout || 10*1000;
-  copts.Devices = Devices;
-  var onTcpConnection = require('./lib/unwrap-tls').createTcpConnectionHandler(copts);
+  var activityTimeout = state.activityTimeout || 2*60*1000;
+  var pongTimeout = state.pongTimeout || 10*1000;
+  state.Devices = Devices;
+  var onTcpConnection = require('./lib/unwrap-tls').createTcpConnectionHandler(state);
 
   function onWsConnection(ws, upgradeReq) {
     console.log(ws);
-    var socketId = packer.socketToId(upgradeReq.socket);
+    var socketId = Packer.socketToId(upgradeReq.socket);
     var remotes = {};
 
     function logName() {
@@ -35,7 +35,7 @@ module.exports.create = function (copts) {
       return result || socketId;
     }
     function sendTunnelMsg(addr, data, service) {
-      ws.send(packer.pack(addr, data, service), {binary: true});
+      ws.send(Packer.pack(addr, data, service), {binary: true});
     }
 
     function getBrowserConn(cid) {
@@ -103,7 +103,7 @@ module.exports.create = function (copts) {
 
       var token;
       try {
-        token = jwt.verify(jwtoken, copts.secret);
+        token = jwt.verify(jwtoken, state.secret);
       } catch (e) {
         token = null;
       }
@@ -154,7 +154,7 @@ module.exports.create = function (copts) {
 
       token.domains.forEach(function (domainname) {
         console.log('domainname', domainname);
-        Devices.add(copts.deviceLists, domainname, token);
+        Devices.add(state.deviceLists, domainname, token);
       });
       remotes[jwtoken] = token;
       console.log("added token '" + token.deviceId + "' to websocket", socketId);
@@ -170,7 +170,7 @@ module.exports.create = function (copts) {
       // Prevent any more browser connections being sent to this remote, and any existing
       // connections from trying to send more data across the connection.
       remote.domains.forEach(function (domainname) {
-        Devices.remove(copts.deviceLists, domainname, remote);
+        Devices.remove(state.deviceLists, domainname, remote);
       });
       remote.ws = null;
       remote.upgradeReq = null;
@@ -220,13 +220,13 @@ module.exports.create = function (copts) {
     };
 
     var packerHandlers = {
-      oncontrol: function (opts) {
+      oncontrol: function (tun) {
         var cmd, err;
         try {
-          cmd = JSON.parse(opts.data.toString());
+          cmd = JSON.parse(tun.data.toString());
         } catch (err) {}
         if (!Array.isArray(cmd) || typeof cmd[0] !== 'number') {
-          var msg = 'received bad command "' + opts.data.toString() + '"';
+          var msg = 'received bad command "' + tun.data.toString() + '"';
           console.warn(msg, 'from websocket', socketId);
           sendTunnelMsg(null, [0, {message: msg, code: 'E_BAD_COMMAND'}], 'control');
           return;
@@ -260,69 +260,70 @@ module.exports.create = function (copts) {
         sendTunnelMsg(null, [-cmd[0], err], 'control');
       }
 
-    , onmessage: function (opts) {
-        var cid = packer.addrToId(opts);
-        console.log("remote '" + logName() + "' has data for '" + cid + "'", opts.data.byteLength);
+    , onmessage: function (tun) {
+        var cid = packer.addrToId(tun);
+        console.log("remote '" + logName() + "' has data for '" + cid + "'", tun.data.byteLength);
 
         var browserConn = getBrowserConn(cid);
         if (!browserConn) {
-          sendTunnelMsg(opts, {message: 'no matching connection', code: 'E_NO_CONN'}, 'error');
+          sendTunnelMsg(tun, {message: 'no matching connection', code: 'E_NO_CONN'}, 'error');
           return;
         }
 
-        browserConn.write(opts.data);
+        browserConn.write(tun.data);
         // tunnelRead is how many bytes we've read from the tunnel, and written to the browser.
-        browserConn.tunnelRead = (browserConn.tunnelRead || 0) + opts.data.byteLength;
+        browserConn.tunnelRead = (browserConn.tunnelRead || 0) + tun.data.byteLength;
         // If we have more than 1MB buffered data we need to tell the other side to slow down.
         // Once we've finished sending what we have we can tell the other side to keep going.
         // If we've already sent the 'pause' message though don't send it again, because we're
         // probably just dealing with data queued before our message got to them.
         if (!browserConn.remotePaused && browserConn.bufferSize > 1024*1024) {
-          sendTunnelMsg(opts, browserConn.tunnelRead, 'pause');
+          sendTunnelMsg(tun, browserConn.tunnelRead, 'pause');
           browserConn.remotePaused = true;
 
           browserConn.once('drain', function () {
-            sendTunnelMsg(opts, browserConn.tunnelRead, 'resume');
+            sendTunnelMsg(tun, browserConn.tunnelRead, 'resume');
             browserConn.remotePaused = false;
           });
         }
       }
 
-    , onpause: function (opts) {
-        var cid = packer.addrToId(opts);
+    , onpause: function (tun) {
+        var cid = Packer.addrToId(tun);
         console.log('[TunnelPause]', cid);
         var browserConn = getBrowserConn(cid);
         if (browserConn) {
           browserConn.manualPause = true;
           browserConn.pause();
         } else {
-          sendTunnelMsg(opts, {message: 'no matching connection', code: 'E_NO_CONN'}, 'error');
+          sendTunnelMsg(tun, {message: 'no matching connection', code: 'E_NO_CONN'}, 'error');
         }
       }
-    , onresume: function (opts) {
-        var cid = packer.addrToId(opts);
+
+    , onresume: function (tun) {
+        var cid = Packer.addrToId(tun);
         console.log('[TunnelResume]', cid);
         var browserConn = getBrowserConn(cid);
         if (browserConn) {
           browserConn.manualPause = false;
           browserConn.resume();
         } else {
-          sendTunnelMsg(opts, {message: 'no matching connection', code: 'E_NO_CONN'}, 'error');
+          sendTunnelMsg(tun, {message: 'no matching connection', code: 'E_NO_CONN'}, 'error');
         }
       }
 
-    , onend: function (opts) {
-        var cid = packer.addrToId(opts);
+    , onend: function (tun) {
+        var cid = Packer.addrToId(tun);
         console.log('[TunnelEnd]', cid);
         closeBrowserConn(cid);
       }
-    , onerror: function (opts) {
-        var cid = packer.addrToId(opts);
-        console.log('[TunnelError]', cid, opts.message);
+    , onerror: function (tun) {
+        var cid = Packer.addrToId(tun);
+        console.log('[TunnelError]', cid, tun.message);
         closeBrowserConn(cid);
       }
     };
-    var unpacker = packer.create(packerHandlers);
+    var unpacker = Packer.create(packerHandlers);
 
     var lastActivity = Date.now();
     var timeoutId;
@@ -390,6 +391,6 @@ module.exports.create = function (copts) {
   return {
     tcp: onTcpConnection
   , ws: onWsConnection
-  , isClientDomain: Devices.exist.bind(null, copts.deviceLists)
+  , isClientDomain: Devices.exist.bind(null, state.deviceLists)
   };
 };

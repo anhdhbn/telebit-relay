@@ -43,11 +43,11 @@
     "greenlock": "^2.2.4",
     "js-yaml": "^3.11.0",
     "jsonwebtoken": "^8.2.1",
+    "proxy-packer": "^1.4.3",
     "recase": "^1.0.4",
     "redirect-https": "^1.1.5",
     "serve-static": "^1.13.2",
     "sni": "^1.0.0",
-    "tunnel-packer": "^1.4.0",
     "ws": "^5.1.1"
   }
 }
