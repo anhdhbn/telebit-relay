@@ -250,12 +250,14 @@ module.exports.create = function (state) {
           console.info('[DynTcpConn] Port', serviceport, 'now open for', token.deviceId);
           token.dynamicPorts.push(serviceport);
           Devices.add(state.deviceLists, serviceport, token);
+          var hri = require('human-readable-ids').hri;
           sendTunnelMsg(
             null
           , [ 2
             , 'grant'
-            , [ ['tcp', serviceport]
-              , ['https', 'ssh.test.telebit.cloud' ]
+            , [ ['tcp', 'tcp.telebit.cloud', serviceport]
+              , ['ssh', 'ssh.telebit.cloud', serviceport ]
+              , ['https', hri.random() + '.telebit.cloud' ]
               ]
             ]
           , 'control'

@@ -41,6 +41,7 @@
     "cluster-store": "^2.0.8",
     "finalhandler": "^1.1.1",
     "greenlock": "^2.2.4",
+    "human-readable-ids": "^1.0.4",
     "js-yaml": "^3.11.0",
     "jsonwebtoken": "^8.2.1",
     "proxy-packer": "^1.4.3",
