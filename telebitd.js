@@ -251,15 +251,18 @@ module.exports.create = function (state) {
           token.dynamicPorts.push(serviceport);
           Devices.add(state.deviceLists, serviceport, token);
           var hri = require('human-readable-ids').hri;
-          var hrname = hri.random();
+          var hrname = hri.random() + '.telebit.cloud';
+          // TODO restrict to authenticated device
+          // TODO pull servername from config
+          Devices.add(state.deviceLists, hrname, token);
           sendTunnelMsg(
             null
           , [ 2
             , 'grant'
-            , [ ['ssh+https', hrname + '.telebit.cloud', 443 ]
+            , [ ['ssh+https', hrname, 443 ]
               , ['ssh', 'ssh.telebit.cloud', serviceport ]
               , ['tcp', 'tcp.telebit.cloud', serviceport]
-              , ['https', hrname + '.telebit.cloud' ]
+              , ['https', hrname ]
               ]
             ]
           , 'control'
