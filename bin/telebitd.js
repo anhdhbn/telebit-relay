@@ -63,7 +63,7 @@ function applyConfig(config) {
   }
 
   function approveDomains(opts, certs, cb) {
-    console.log('[debug] approveDomains', opts.domains);
+    if (state.debug) { console.log('[debug] approveDomains', opts.domains); }
     // This is where you check your database and associated
     // email addresses with domains and agreements and such
 
@@ -75,11 +75,12 @@ function applyConfig(config) {
       return;
     }
 
-    if (state.config.vhost) {
-      console.log('[sni] vhost checking is turned on');
+    if (!state.validHosts) { state.validHosts = {}; }
+    if (!state.validHosts[opts.domains[0]] && state.config.vhost) {
+      if (state.debug) { console.log('[sni] vhost checking is turned on'); }
       var vhost = state.config.vhost.replace(/:hostname/, opts.domains[0]);
       require('fs').readdir(vhost, function (err, nodes) {
-        console.log('[sni] checking fs vhost');
+        if (state.debug) { console.log('[sni] checking fs vhost', opts.domains[0], !err); }
         if (err) { check(); return; } 
         if (nodes) { approve(); }
       });
@@ -87,8 +88,10 @@ function applyConfig(config) {
     }
 
     function approve() {
+      state.validHosts[opts.domains[0]] = true;
       opts.email = state.config.email;
       opts.agreeTos = state.config.agreeTos;
+      opts.communityMember = state.config.communityMember || state.config.greenlock.communityMember;
       opts.challenges = {
         // TODO dns-01
         'http-01': require('le-challenge-fs').create({ webrootPath: '/tmp/acme-challenges' })
@@ -98,41 +101,28 @@ function applyConfig(config) {
     }
 
     function check() {
-      console.log('[sni] checking servername');
+      if (state.debug) { console.log('[sni] checking servername'); }
       if (-1 !== state.servernames.indexOf(opts.domain) || -1 !== (state._servernames||[]).indexOf(opts.domain)) {
         approve();
       } else {
         cb(new Error("failed the approval chain '" + opts.domains[0] + "'"));
       }
-      console.log('Approve Domains cb');
     }
+
     check();
   }
-
-/*
-  if (!config.email || !config.agreeTos) {
-    console.error("You didn't specify --email <EMAIL> and --agree-tos");
-    console.error("(required for ACME / Let's Encrypt / Greenlock TLS/SSL certs)");
-    console.error("");
-    process.exit(1);
-  }
-*/
 
   state.greenlock = Greenlock.create({
 
     version: state.config.greenlock.version || 'draft-11'
   , server: state.config.greenlock.server || 'https://acme-v02.api.letsencrypt.org/directory'
-  //, server: 'https://acme-staging-v02.api.letsencrypt.org/directory'
 
-  , store: require('le-store-certbot').create({ debug: true, webrootPath: '/tmp/acme-challenges' })
+  , store: require('le-store-certbot').create({ debug: state.config.debug || state.config.greenlock.debug, webrootPath: '/tmp/acme-challenges' })
 
   , approveDomains: approveDomains
-
+  , telemetry: state.config.telemetry || state.config.greenlock.telemetry
   , configDir: state.config.greenlock.configDir
   , debug: state.config.debug || state.config.greenlock.debug
-
-  //, approvedDomains: program.servernames
-
   });
 
   require('../handlers').create(state); // adds directly to config for now...
@@ -147,14 +137,13 @@ function applyConfig(config) {
     wss.on('connection', netConnHandlers.ws);
     state.ports.forEach(function (port) {
       if (state.tcp[port]) {
-        console.error("skipping previously added port " + port);
+        console.warn("[cli] skipping previously added port " + port);
         return;
       }
       state.tcp[port] = net.createServer();
       state.tcp[port].listen(port, function () {
-        console.log('listening plain TCP on ' + port);
+        console.info('[cli] Listening for TCP connections on', port);
       });
-      //state.tcp[port].on('connection', function (conn) { netConnHandlers.tcp(conn, port); });
       state.tcp[port].on('connection', netConnHandlers.tcp);
     });
   //});

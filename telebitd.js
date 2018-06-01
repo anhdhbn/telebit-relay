@@ -12,6 +12,7 @@ function timeoutPromise(duration) {
 }
 
 var Devices = require('./lib/device-tracker');
+var pipeWs = require('./lib/pipe-ws.js');
 
 module.exports.store = { Devices: Devices };
 module.exports.create = function (state) {
@@ -22,8 +23,70 @@ module.exports.create = function (state) {
   state.Devices = Devices;
   var onTcpConnection = require('./lib/unwrap-tls').createTcpConnectionHandler(state);
 
+  // TODO Use a Single TCP Handler
+  // Issues:
+  //   * dynamic ports are dedicated to a device or cluster
+  //   * servernames could come in on ports that belong to a different device
+  //   * servernames could come in that belong to no device
+  //   * this could lead to an attack / security vulnerability with ACME certificates
+  // Solutions
+  //   * Restrict dynamic ports to a particular device
+  //   * Restrict the use of servernames
+  function onDynTcpConn(conn) {
+    var serviceport = this.address().port;
+    console.log('[DynTcpConn] new connection on', serviceport);
+    var remote = Devices.next(state.deviceLists, serviceport)
+
+    if (!remote) {
+      conn.write("[Sanity Error] I've got a blank space baby, but nowhere to write your name.");
+      conn.end();
+      try {
+        this.close();
+      } catch(e) {
+        console.error("[DynTcpConn] failed to close server:", e);
+      }
+      return;
+    }
+
+    conn.once('data', function (firstChunk) {
+      console.log("[DynTcp] examining firstChunk", serviceport);
+      conn.pause();
+      conn.unshift(firstChunk);
+
+      var servername;
+      var hostname;
+      var str;
+      var m;
+
+      if (22 === firstChunk[0]) {
+        servername = (sni(firstChunk)||'').toLowerCase();
+      } else if (firstChunk[0] > 32 && firstChunk[0] < 127) {
+        str = firstChunk.toString();
+        m = str.match(/(?:^|[\r\n])Host: ([^\r\n]+)[\r\n]*/im);
+        hostname = (m && m[1].toLowerCase() || '').split(':')[0];
+      }
+
+      if (servername || hostname) {
+        if (servername) {
+          conn.write("TLS with sni is allowed only on standard ports. If you've registered '" + servername + "' use port 443.");
+        } else {
+          conn.write("HTTP with Host headers is not allowed on dynamic ports. If you've registered '" + hostname + "' use port 80.");
+        }
+        conn.end();
+        return;
+      }
+
+      // pipeWs(servername, servicename, client, remote, serviceport)
+      // remote.clients is managed as part of the piping process
+      console.log("[DynTcp] piping to remote", serviceport);
+      pipeWs(null, 'tcp', conn, remote, serviceport)
+
+      process.nextTick(function () { conn.resume(); });
+    });
+  }
+
   function onWsConnection(ws, upgradeReq) {
-    console.log(ws);
+    if (state.debug) { console.log('[ws] connection'); }
     var socketId = Packer.socketToId(upgradeReq.socket);
     var remotes = {};
 
@@ -131,6 +194,7 @@ module.exports.create = function (state) {
       token.ws = ws;
       token.upgradeReq = upgradeReq;
       token.clients = {};
+      token.dynamicPorts = [];
 
       token.pausedConns = [];
       ws._socket.on('drain', function () {
@@ -153,11 +217,26 @@ module.exports.create = function (state) {
       });
 
       token.domains.forEach(function (domainname) {
-        console.log('domainname', domainname);
         Devices.add(state.deviceLists, domainname, token);
       });
+
+      function handleTcpServer() {
+        var serviceport = this.address().port;
+        console.info('[DynTcpConn] Port', serviceport, 'now open for', token.deviceId);
+        token.dynamicPorts.push(serviceport);
+        Devices.add(state.deviceLists, serviceport, token);
+      }
+
+      try {
+        token.server = require('net').createServer(onDynTcpConn).listen(0, handleTcpServer);
+      } catch(e) {
+        // what a wonderful problem it will be the day that this bug needs to be fixed
+        // (i.e. there are enough users to run out of ports)
+        console.error("Error assigning a dynamic port to a new connection:", e);
+      }
+
       remotes[jwtoken] = token;
-      console.log("added token '" + token.deviceId + "' to websocket", socketId);
+      console.info("[ws] authorized", socketId, "for", token.deviceId);
       return null;
     }
 
@@ -172,15 +251,22 @@ module.exports.create = function (state) {
       remote.domains.forEach(function (domainname) {
         Devices.remove(state.deviceLists, domainname, remote);
       });
+      remote.dynamicPorts.forEach(function (portnumber) {
+        Devices.remove(state.deviceLists, portnumber, remote);
+      });
       remote.ws = null;
       remote.upgradeReq = null;
+      remote.server.close(function () {
+        console.log("[DynTcpConn] closing server for ", remote.server.address().port);
+      });
+      remote.server = null;
 
       // Close all of the existing browser connections associated with this websocket connection.
       Object.keys(remote.clients).forEach(function (cid) {
         closeBrowserConn(cid);
       });
       delete remotes[jwtoken];
-      console.log("removed token '" + remote.deviceId + "' from websocket", socketId);
+      console.log("[ws] removed token '" + remote.deviceId + "' from", socketId);
       return null;
     }
 
@@ -236,7 +322,7 @@ module.exports.create = function (state) {
           // We only ever send one command and we send it once, so we just hard coded the ID as 1.
           if (cmd[0] === -1) {
             if (cmd[1]) {
-              console.log('received error response to hello from', socketId, cmd[1]);
+              console.warn('received error response to hello from', socketId, cmd[1]);
             }
           }
           else {
@@ -262,7 +348,7 @@ module.exports.create = function (state) {
 
     , onmessage: function (tun) {
         var cid = Packer.addrToId(tun);
-        console.log("remote '" + logName() + "' has data for '" + cid + "'", tun.data.byteLength);
+        if (state.debug) { console.log("remote '" + logName() + "' has data for '" + cid + "'", tun.data.byteLength); }
 
         var browserConn = getBrowserConn(cid);
         if (!browserConn) {
@@ -319,7 +405,7 @@ module.exports.create = function (state) {
       }
     , onerror: function (tun) {
         var cid = Packer.addrToId(tun);
-        console.log('[TunnelError]', cid, tun.message);
+        console.warn('[TunnelError]', cid, tun.message);
         closeBrowserConn(cid);
       }
     };
@@ -343,7 +429,7 @@ module.exports.create = function (state) {
       // Otherwise we check to see if the pong has also timed out, and if not we send a ping
       // and call this function again when the pong will have timed out.
       else if (silent < activityTimeout + pongTimeout) {
-        console.log('pinging', logName());
+        if (state.debug) { console.log('pinging', logName()); }
         try {
           ws.ping();
         } catch (err) {
@@ -355,7 +441,7 @@ module.exports.create = function (state) {
       // Last case means the ping we sent before didn't get a response soon enough, so we
       // need to close the websocket connection.
       else {
-        console.log('home cloud', logName(), 'connection timed out');
+        console.warn('home cloud', logName(), 'connection timed out');
         ws.close(1013, 'connection timeout');
       }
     }
@@ -367,14 +453,14 @@ module.exports.create = function (state) {
     ws.on('pong', refreshTimeout);
     ws.on('message', function forwardMessage(chunk) {
       refreshTimeout();
-      console.log('message from home cloud to tunneler to browser', chunk.byteLength);
+      if (state.debug) { console.log('[ws] device => client : demultiplexing message ', chunk.byteLength, 'bytes'); }
       //console.log(chunk.toString());
       unpacker.fns.addChunk(chunk);
     });
 
     function hangup() {
       clearTimeout(timeoutId);
-      console.log('home cloud', logName(), 'connection closing');
+      console.log('[ws] device hangup', logName(), 'connection closing');
       Object.keys(remotes).forEach(function (jwtoken) {
         removeToken(jwtoken);
       });

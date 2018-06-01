@@ -19,7 +19,7 @@ module.exports.create = function (state) {
   var setupTlsOpts = {
     SNICallback: function (servername, cb) {
       if (!setupSniCallback) {
-        console.error("No way to get https certificates...");
+        console.error("[setup.SNICallback] No way to get https certificates...");
         cb(new Error("telebitd sni setup fail"));
         return;
       }
@@ -29,7 +29,6 @@ module.exports.create = function (state) {
 
   // Probably a reverse proxy on an internal network (or ACME challenge)
   function notFound(req, res) {
-    console.log('req.socket.encrypted', req.socket.encrypted);
     res.statusCode = 404;
     res.end("File not found.\n");
   }
@@ -79,10 +78,10 @@ module.exports.create = function (state) {
     // tlsServer.emit('connection', socket);    // this didn't work either
     //console.log('chunkLen', firstChunk.byteLength);
 
-    console.log('httpsInvalid servername', servername);
+    console.log('[httpsInvalid] servername', servername);
     //state.tlsInvalidSniServer.emit('connection', wrapSocket(socket));
     var tlsInvalidSniServer = tls.createServer(state.tlsOptions, function (tlsSocket) {
-      console.log('tls connection');
+      console.log('[tlsInvalid] tls connection');
       // things get a little messed up here
       var httpInvalidSniServer = http.createServer(function (req, res) {
         if (!servername) {
@@ -118,10 +117,8 @@ module.exports.create = function (state) {
   var serveAdmin = require('serve-static')(__dirname + '/admin', { redirect: true });
   var finalhandler = require('finalhandler');
   state.httpTunnelServer = http.createServer(function (req, res) {
-    console.log('admin req.socket.encrypted', req.socket.encrypted);
     res.setHeader('connection', 'close');
     serveAdmin(req, res, function () {
-      console.log("serveAdmin fail");
       finalhandler(req, res)
     });
   });
@@ -129,17 +126,13 @@ module.exports.create = function (state) {
     tunnelAdminTlsOpts[key] = state.tlsOptions[key];
   });
   if (state.greenlock && state.greenlock.tlsOptions) {
-    console.log('greenlock tlsOptions for SNICallback');
-    tunnelAdminTlsOpts.SNICallback = function (servername, cb) {
-      console.log("time to handle '" + servername + "'");
-      state.greenlock.tlsOptions.SNICallback(servername, cb);
-    };
+    tunnelAdminTlsOpts.SNICallback = state.greenlock.tlsOptions.SNICallback;
   } else {
-    console.log('custom or null tlsOptions for SNICallback');
+    console.log('[Admin] custom or null tlsOptions for SNICallback');
     tunnelAdminTlsOpts.SNICallback = tunnelAdminTlsOpts.SNICallback || noSniCallback('admin');
   }
   state.tlsTunnelServer = tls.createServer(tunnelAdminTlsOpts, function (tlsSocket) {
-    console.log('(Admin) tls connection');
+    if (state.debug) { console.log('[Admin] new tls-terminated connection'); }
     // things get a little messed up here
     (state.httpTunnelServer || state.httpServer).emit('connection', tlsSocket);
   });
@@ -152,7 +145,7 @@ module.exports.create = function (state) {
     // tlsServer.emit('connection', socket);    // this didn't work either
     //console.log('chunkLen', firstChunk.byteLength);
 
-    console.log('httpsTunnel (Admin) servername', servername);
+    if (state.debug) { console.log('[Admin] new raw tls connection for', servername); }
     state.tlsTunnelServer.emit('connection', wrapSocket(socket));
   };
 
@@ -162,28 +155,26 @@ module.exports.create = function (state) {
   var serveSetup = require('serve-static')(__dirname + '/admin/setup', { redirect: true });
   var finalhandler = require('finalhandler');
   state.httpSetupServer = http.createServer(function (req, res) {
-    console.log('req.socket.encrypted', req.socket.encrypted);
     if (req.socket.encrypted) {
       serveSetup(req, res, finalhandler(req, res));
       return;
     }
-    console.log('try greenlock middleware');
     (state.greenlock && state.greenlock.middleware(redirectHttpsAndClose)
       || redirectHttpsAndClose)(req, res, function () {
-      console.log('fallthrough to setup ui');
+      console.log('[Setup] fallthrough to setup ui');
       serveSetup(req, res, finalhandler(req, res));
     });
   });
   state.tlsSetupServer = tls.createServer(setupTlsOpts, function (tlsSocket) {
-    console.log('tls connection');
+    console.log('[Setup] terminated tls connection');
     // things get a little messed up here
     state.httpSetupServer.emit('connection', tlsSocket);
   });
   state.tlsSetupServer.on('tlsClientError', function () {
-    console.error('tlsClientError SetupServer');
+    console.error('[Setup] tlsClientError SetupServer');
   });
   state.httpsSetupServer = function (servername, socket) {
-    console.log('httpsTunnel (Setup) servername', servername);
+    console.log('[Setup] raw tls connection for', servername);
     state._servernames = [servername];
     state.config.agreeTos = true; // TODO: BUG XXX BAD, make user accept
     setupSniCallback = state.greenlock.tlsOptions.SNICallback || noSniCallback('setup');
@@ -194,31 +185,30 @@ module.exports.create = function (state) {
   // vhost
   //
   state.httpVhost = http.createServer(function (req, res) {
-    console.log('httpVhost (local)');
-    console.log('req.socket.encrypted', req.socket.encrypted);
+    if (state.debug) { console.log('[vhost] encrypted?', req.socket.encrypted); }
 
     var finalhandler = require('finalhandler');
     // TODO compare SNI to hostname?
     var host = (req.headers.host||'').toLowerCase().trim();
-    var serveSetup = require('serve-static')(state.config.vhost.replace(/:hostname/g, host), { redirect: true });
+    var serveVhost = require('serve-static')(state.config.vhost.replace(/:hostname/g, host), { redirect: true });
 
-    if (req.socket.encrypted) { serveSetup(req, res, finalhandler(req, res)); return; }
+    if (req.socket.encrypted) { serveVhost(req, res, finalhandler(req, res)); return; }
 
-    console.log('try greenlock middleware for vhost');
-    (state.greenlock && state.greenlock.middleware(redirectHttpsAndClose)
-      || redirectHttpsAndClose)(req, res, function () {
-      console.log('fallthrough to vhost serving???');
-      serveSetup(req, res, finalhandler(req, res));
-    });
+    if (!state.greenlock) {
+      console.error("Cannot vhost without greenlock options");
+      res.end("Cannot vhost without greenlock options");
+    }
+
+    state.greenlock.middleware(redirectHttpsAndClose);
   });
   state.tlsVhost = tls.createServer(
     { SNICallback: function (servername, cb) {
-        console.log('tlsVhost debug SNICallback', servername);
+        if (state.debug) { console.log('[vhost] SNICallback for', servername); }
         tunnelAdminTlsOpts.SNICallback(servername, cb);
       }
     }
   , function (tlsSocket) {
-      console.log('tlsVhost (local)');
+      if (state.debug) { console.log('tlsVhost (local)'); }
       state.httpVhost.emit('connection', tlsSocket);
     }
   );
@@ -226,7 +216,7 @@ module.exports.create = function (state) {
     console.error('tlsClientError Vhost');
   });
   state.httpsVhost = function (servername, socket) {
-    console.log('httpsVhost (local)', servername);
+    if (state.debug) { console.log('[vhost] httpsVhost (local) for', servername); }
     state.tlsVhost.emit('connection', wrapSocket(socket));
   };
 };
