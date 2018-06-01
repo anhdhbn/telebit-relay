@@ -49,7 +49,7 @@ module.exports.create = function (state) {
     }
 
     conn.once('data', function (firstChunk) {
-      console.log("[DynTcp] examining firstChunk", serviceport);
+      if (state.debug) { console.log("[DynTcp]", serviceport, "examining firstChunk from", Packer.socketToId(conn)); }
       conn.pause();
       conn.unshift(firstChunk);
 
@@ -78,7 +78,7 @@ module.exports.create = function (state) {
 
       // pipeWs(servername, servicename, client, remote, serviceport)
       // remote.clients is managed as part of the piping process
-      console.log("[DynTcp] piping to remote", serviceport);
+      if (state.debug) { console.log("[DynTcp]", serviceport, "piping to remote"); }
       pipeWs(null, 'tcp', conn, remote, serviceport)
 
       process.nextTick(function () { conn.resume(); });
@@ -256,8 +256,10 @@ module.exports.create = function (state) {
       });
       remote.ws = null;
       remote.upgradeReq = null;
+      remote.serverPort = remote.server.address().port;
       remote.server.close(function () {
-        console.log("[DynTcpConn] closing server for ", remote.server.address().port);
+        console.log("[DynTcpConn] closing server for ", remote.serverPort);
+        remote.serverPort = null;
       });
       remote.server = null;
 
