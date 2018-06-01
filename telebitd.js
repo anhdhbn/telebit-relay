@@ -244,6 +244,7 @@ module.exports.create = function (state) {
       if (!firstToken || firstToken === jwtoken) {
         firstToken = jwtoken;
         token.dynamicPorts = [];
+        token.dynamicNames = [];
 
         function onDynTcpReady() {
           var serviceport = this.address().port;
@@ -252,8 +253,10 @@ module.exports.create = function (state) {
           Devices.add(state.deviceLists, serviceport, token);
           var hri = require('human-readable-ids').hri;
           var hrname = hri.random() + '.telebit.cloud';
+          token.dynamicNames.push(hrname);
           // TODO restrict to authenticated device
           // TODO pull servername from config
+          // TODO remove hrname on disconnect
           Devices.add(state.deviceLists, hrname, token);
           sendTunnelMsg(
             null
