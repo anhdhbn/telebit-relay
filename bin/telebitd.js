@@ -130,20 +130,30 @@ function applyConfig(config) {
   , debug: state.config.debug || state.config.greenlock.debug
   });
 
+  try {
+    // TODO specify extensions in config file
+    state.extensions = require('../lib/extensions');
+  } catch(e) {
+    if (state.debug) { console.log('[DEBUG] no extensions loaded', e); }
+    state.extensions = {};
+  }
   require('../lib/handlers').create(state); // adds directly to config for now...
 
   //require('cluster-store').create().then(function (store) {
     //program.store = store;
 
+
     state.authenticate = function (opts) {
-      try {
-        state.extensions = require('./extensions');
-        return state.extensions.authenticate({
-          state: state
-        , auth: opts.auth
-        });
-      } catch(e) {
-        // ignore
+      if (state.extensions.authenticate) {
+        try {
+          return state.extensions.authenticate({
+            state: state
+          , auth: opts.auth
+          });
+        } catch(e) {
+          console.error('Extension Error:');
+          console.error(e);
+        }
       }
       return state.defaults.authenticate(opts.auth);
     };
