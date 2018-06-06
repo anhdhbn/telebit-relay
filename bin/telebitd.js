@@ -5,7 +5,7 @@
 var pkg = require('../package.json');
 
 var argv = process.argv.slice(2);
-var telebitd = require('../');
+var relay = require('../');
 var Greenlock = require('greenlock');
 
 var confIndex = argv.indexOf('--config');
@@ -168,7 +168,7 @@ function applyConfig(config) {
     };
 
     var net = require('net');
-    var netConnHandlers = telebitd.create(state); // { tcp, ws }
+    var netConnHandlers = relay.create(state); // { tcp, ws }
     var WebSocketServer = require('ws').Server;
     var wss = new WebSocketServer({ server: (state.httpTunnelServer || state.httpServer) });
     wss.on('connection', netConnHandlers.ws);
