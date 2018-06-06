@@ -5,7 +5,7 @@
 var pkg = require('../package.json');
 
 var argv = process.argv.slice(2);
-var telebitd = require('../telebitd.js');
+var telebitd = require('../');
 var Greenlock = require('greenlock');
 
 var confIndex = argv.indexOf('--config');
@@ -41,7 +41,12 @@ if (!confpath || /^--/.test(confpath)) {
 }
 
 function applyConfig(config) {
-  var state = { ports: [ 80, 443 ], tcp: {} };
+  var state = { defaults: {}, ports: [ 80, 443 ], tcp: {} };
+  if ('undefined' !== typeof Promise) {
+    state.Promise = Promise;
+  } else {
+    state.Promise = require('bluebird');
+  }
   state.tlsOptions = {}; // TODO just close the sockets that would use this early? or use the admin servername
   state.config = config;
   state.servernames = config.servernames || [];
@@ -125,10 +130,42 @@ function applyConfig(config) {
   , debug: state.config.debug || state.config.greenlock.debug
   });
 
-  require('../handlers').create(state); // adds directly to config for now...
+  require('../lib/handlers').create(state); // adds directly to config for now...
 
   //require('cluster-store').create().then(function (store) {
     //program.store = store;
+
+    state.authenticate = function (opts) {
+      try {
+        state.extensions = require('./extensions');
+        return state.extensions.authenticate({
+          state: state
+        , auth: opts.auth
+        });
+      } catch(e) {
+        // ignore
+      }
+      return state.defaults.authenticate(opts.auth);
+    };
+
+    // default authenticator for single-user setup
+    // (i.e. personal use on DO, Vultr, or RPi)
+    state.defaults.authenticate = function onAuthenticate(jwtoken) {
+      return state.Promise.resolve().then(function () {
+        var jwt = require('jsonwebtoken');
+        var auth;
+        var token;
+        var decoded;
+
+        try {
+          token = jwt.verify(jwtoken, state.secret);
+        } catch (e) {
+          token = null;
+        }
+
+        return token;
+      });
+    };
 
     var net = require('net');
     var netConnHandlers = telebitd.create(state); // { tcp, ws }
