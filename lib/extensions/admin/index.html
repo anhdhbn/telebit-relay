@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Telebit&trade;</title>
+    <meta charset="UTF-8">
+    <style>
+      /* http://www.karlgroves.com/2013/12/17/quick-tip-text-characters-as-visual-separators/ */
+      pre {
+        margin-left: 2em;
+        background-color: #EFEFFF;
+        padding: 1em;
+      }
+      footer li{
+          list-style-type: none;
+          display: inline;
+          margin-right: .3 em;
+      }
+      footer li:not(:last-of-type):after{
+          content: ' | ';
+      }
+    </style>
+  </head>
+  <body>
+    <script>document.body.hidden = true;</script>
+
+    <center>
+      <h1>Telebit</h1>
+      <p>Access anything, anywhere, anytime.</p>
+    </center>
+
+    <div style="width: 500px; margin: auto;">
+
+      <h2>1. Install Telebit</h2>
+      <p>We have a simple command line installer for Mac and Linux:</p>
+      <pre><code>curl -fsSL https://get.telebit.cloud/ | bash</code></pre>
+      <p>Windows requires <a href="https://git.coolaj86.com/coolaj86/telebit.js" target="_blank">manual installation</a>, but it's not too hard.</p>
+
+      <h2>2. Claim your device via Email</h2>
+      <p>You'll get an email that looks like this:</p>
+      <pre><code>You've installed Telebit on 'Jon's Macbook Pro'.
+
+Authenticate your account and claim your device:
+
+    https://www.telebit.cloud/login/?magic=xxxxxxxxxxxxxx
+</code></pre>
+
+      <h2>3. Enjoy Anytime, Anywhere Access</h2>
+      <p>With a free account you'll get a random name and port number, such as "lucky-duck-42" and "22222".</p>
+      <pre><code>HTTPS
+
+  https://lucky-duck-42.telebit.cloud
+
+SSH
+
+  ssh ssh.telebit.cloud -p 22222
+
+TCP
+
+  netcat tcp.telebit.cloud 22222</code></pre>
+
+<pre><code>SSH over HTTPS (not blocked by firewalls)
+
+  # Add the following to ~/.ssh/config: 
+  Host lucky-duck-42.telebit.cloud
+    ProxyCommand openssl s_client -quiet -connect %h:443
+
+  # Run ssh with (your domain, no port):
+  ssh lucky-duck-42.telebit.cloud</code></pre>
+
+    <center>
+      <p><footer>
+        <h3>
+          <li><a href="https://git.coolaj86.com/coolaj86/telebit.js" target="_blank">Read the Telebit docs</a></li>
+          <li><a href="https://git.coolaj86.com/coolaj86/telebitd.js" target="_blank">Host your own Telebit Relay</a></li>
+        </h3>
+
+        <li>&copy;2018 AJ ONeal</li>
+        <li><a href="https://git.coolaj86.com/coolaj86/telebit.js" target="_blank">git</a></li>
+        <li><a href="/legal/" target="_blank">License</a></li>
+        <li><a href="/legal/" target="_blank">Terms</a></li>
+        <li><a href="/legal/" target="_blank">Privacy</a></li>
+      </footer></p>
+    </center>
+
+    </div>
+
+    <script src="js/app.js"></script>
+  </body>
+</html>
