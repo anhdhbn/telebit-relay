@@ -31,15 +31,15 @@ curl -fsSL https://get.telebit.cloud/relay | bash
 
 Of course, feel free to inspect the install script before you run it.
 
-This will install Telebit Relay to `/opt/telebitd` and
-put a symlink to `/opt/telebitd/bin/telebitd` in `/usr/local/bin/telebitd`
+This will install Telebit Relay to `/opt/telebit-relay` and
+put a symlink to `/opt/telebit-relay/bin/telebit-relay` in `/usr/local/bin/telebit-relay`
 for convenience.
 
 You can customize the installation:
 
 ```bash
 export NODEJS_VER=v10.2
-export TELEBITD_PATH=/opt/telebitd
+export TELEBIT_RELAY_PATH=/opt/telebit-relay
 curl -fsSL https://get.telebit.cloud/relay
 ```
 
@@ -49,7 +49,7 @@ and the path to which Telebit Relay installs.
 You can get rid of the tos + email and server domain name prompts by providing them right away:
 
 ```bash
-curl -fsSL https://get.telebit.cloud/relay | bash -- jon@example.com telebit.example.com
+curl -fsSL https://get.telebit.cloud/relay | bash -- jon@example.com telebit-relay.example.com
 ```
 
 Windows & Node.js
@@ -57,37 +57,37 @@ Windows & Node.js
 
 1. Install [node.js](https://nodejs.org)
 2. Open _Node.js_
-2. Run the command `npm install -g telebitd`
+2. Run the command `npm install -g telebit-relay`
 
 **Note**: Use node.js v8.x or v10.x
 
-There is [a bug](https://github.com/nodejs/node/issues/20241) in node v9.x that causes telebitd to crash.
+There is [a bug](https://github.com/nodejs/node/issues/20241) in node v9.x that causes telebit-relay to crash.
 
 Usage
 ====
 
 ```bash
-telebitd --config /etc/telebit/telebitd.yml
+telebit-relay --config /opt/telebit-relay/etc/telebit-relay.yml
 ```
 
 Options
 
-`/etc/telebit/telebitd.yml:`
+`/opt/telebit-relay/etc/telebit-relay.yml:`
 ```
-email: 'jon@example.com'   # must be valid (for certificate recovery and security alerts)
-agree_tos: true            # agree to the Telebit, Greenlock, and Let's Encrypt TOSes
-community_member: true     # receive infrequent relevant but non-critical updates
-telemetry: true            # contribute to project telemetric data
-secret: ''                 # JWT authorization secret. Generate like so:
-                           # node -e "console.log(crypto.randomBytes(16).toString('hex'))"
-servernames:               # hostnames that direct to the Telebit Relay admin console
-  - telebit.example.com
-  - telebit.example.net
-vhost: /srv/www/:hostname  # securely serve local sites from this path (or false)
-                           # (uses template string, i.e. /var/www/:hostname/public)
+email: 'jon@example.com'       # must be valid (for certificate recovery and security alerts)
+agree_tos: true                # agree to the Telebit, Greenlock, and Let's Encrypt TOSes
+community_member: true         # receive infrequent relevant but non-critical updates
+telemetry: true                # contribute to project telemetric data
+secret: ''                     # JWT authorization secret. Generate like so:
+                               # node -e "console.log(crypto.randomBytes(16).toString('hex'))"
+servernames:                   # hostnames that direct to the Telebit Relay admin console
+  - telebit-relay.example.com
+  - telebit-relay.example.net
+vhost: /srv/www/:hostname      # securely serve local sites from this path (or false)
+                               # (uses template string, i.e. /var/www/:hostname/public)
 greenlock:
-  store: le-store-certbot  # certificate storage plugin
-  config_dir: /etc/acme    # directory for ssl certificates
+  store: le-store-certbot      # certificate storage plugin
+  config_dir: /opt/telebit-relay/etc/acme    # directory for ssl certificates
 ```
 
 Security
@@ -117,7 +117,7 @@ most people.
 In keeping with our no lock-in policy, we release a version of
 the server for anyone to use independently.
 
-TODO show how to do on 
+TODO show how to do on
 
 	* Node WS Tunnel (zero setup)
 	* Heroku (zero cost)
@@ -128,7 +128,7 @@ Useful Tidbits
 
 ## As a systemd service
 
-`./dist/etc/systemd/system/telebitd.service` should be copied to `/etc/systemd/system/telebitd.service`.
+`./dist/etc/systemd/system/telebit-relay.service` should be copied to `/etc/systemd/system/telebit-relay.service`.
 
 The user and group `telebit` should be created.
 

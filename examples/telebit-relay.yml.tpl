@@ -7,4 +7,4 @@ greenlock:
   server: 'https://acme-v02.api.letsencrypt.org/directory'
   store:
     strategy: le-store-certbot
-  config_dir: /opt/telebitd/acme
+  config_dir: /opt/telebit-relay/etc/acme

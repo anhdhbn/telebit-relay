@@ -1,11 +1,11 @@
 # Pre-req
-# sudo adduser telebit --home /opt/telebitd
-# sudo mkdir -p /opt/telebitd/
-# sudo chown -R telebit:telebit /opt/telebitd/
+# sudo adduser telebit --home /opt/telebit-relay
+# sudo mkdir -p /opt/telebit-relay/
+# sudo chown -R telebit:telebit /opt/telebit-relay/
 
 [Unit]
 Description=Telebit Relay
-Documentation=https://git.coolaj86.com/coolaj86/telebitd.js/
+Documentation=https://git.coolaj86.com/coolaj86/telebit-relay.js/
 After=network-online.target
 Wants=network-online.target systemd-networkd-wait-online.service
 
@@ -22,9 +22,9 @@ StartLimitBurst=3
 User=telebit
 Group=telebit
 
-WorkingDirectory=/opt/telebitd
+WorkingDirectory=/opt/telebit-relay
 # custom directory cannot be set and will be the place where gitea exists, not the working directory
-ExecStart=/opt/telebitd/bin/node /opt/telebitd/bin/telebitd.js --config /etc/telebit/telebitd.yml
+ExecStart=/opt/telebit-relay/bin/node /opt/telebit-relay/bin/telebit-relay.js --config /opt/telebit-relay/etc/telebit-relay.yml
 ExecReload=/bin/kill -USR1 $MAINPID
 
 # Limit the number of file descriptors and processes; see `man systemd.exec` for more limit settings.
@@ -44,10 +44,10 @@ ProtectSystem=full
 # and /var/log/gitea because we want a place where logs can go.
 # This merely retains r/w access rights, it does not add any new.
 # Must still be writable on the host!
-ReadWriteDirectories=/opt/telebitd /etc/telebit
+ReadWriteDirectories=/opt/telebit-relay /etc/telebit
 
 # Note: in v231 and above ReadWritePaths has been renamed to ReadWriteDirectories
-; ReadWritePaths=/opt/telebitd /etc/telebit
+; ReadWritePaths=/opt/telebit-relay /etc/telebit
 
 # The following additional security directives only work with systemd v229 or later.
 # They further retrict privileges that can be gained by gitea.

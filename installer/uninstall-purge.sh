@@ -1,5 +1,5 @@
-systemctl disable telebitd
-systemctl stop telebitd
-rm -rf /opt/telebitd/ /etc/system/systemd/telebitd.service /etc/telebit/ /usr/local/bin/telebitd
+systemctl disable telebit-relay
+systemctl stop telebit-relay
+rm -rf /opt/telebit-relay/ /etc/system/systemd/telebit-relay.service /usr/local/bin/telebit-relay /etc/telebit/
 userdel -r telebit
 groupdel telebit

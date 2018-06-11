@@ -1,17 +1,17 @@
 {
-  "name": "telebitd",
-  "version": "0.12.0",
+  "name": "telebit-relay",
+  "version": "0.12.1",
   "description": "Friends don't let friends localhost. Expose your bits with a secure connection even from behind NAT, Firewalls, in a box, with a fox, on a train or in a plane... or a Raspberry Pi in your closet. An attempt to create a better localtunnel.me server, a more open ngrok. Uses Automated HTTPS (Free SSL) via ServerName Indication (SNI). Can also tunnel tls and plain tcp.",
   "main": "lib/relay.js",
   "bin": {
-    "telebitd": "bin/telebitd.js"
+    "telebit-relay": "bin/telebit-relay.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "https://git.coolaj86.com/coolaj86/telebitd.js.git"
+    "url": "https://git.coolaj86.com/coolaj86/telebit-relay.js.git"
   },
   "keywords": [
     "http",
@@ -33,9 +33,9 @@
   "author": "AJ ONeal <coolaj86@gmail.com> (https://coolaj86.com/)",
   "license": "(MIT OR Apache-2.0)",
   "bugs": {
-    "url": "https://git.coolaj86.com/coolaj86/telebitd.js/issues"
+    "url": "https://git.coolaj86.com/coolaj86/telebit-relay.js/issues"
   },
-  "homepage": "https://git.coolaj86.com/coolaj86/telebitd.js",
+  "homepage": "https://git.coolaj86.com/coolaj86/telebit-relay.js",
   "dependencies": {
     "bluebird": "^3.5.1",
     "cluster-store": "^2.0.8",
