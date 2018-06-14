@@ -44,7 +44,7 @@ ProtectSystem=full
 # and /var/log/gitea because we want a place where logs can go.
 # This merely retains r/w access rights, it does not add any new.
 # Must still be writable on the host!
-ReadWriteDirectories=/opt/telebit-relay /etc/telebit
+ReadWriteDirectories=/opt/telebit-relay
 
 # Note: in v231 and above ReadWritePaths has been renamed to ReadWriteDirectories
 ; ReadWritePaths=/opt/telebit-relay /etc/telebit
