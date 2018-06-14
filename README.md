@@ -84,10 +84,12 @@ pushd /opt/telebit-relay
   rsync -a dist/etc/systemd/system/telebit-relay.service /etc/systemd/system/telebit-relay.service
 popd
 
-# IMPORTANT: Season to taste
+# IMPORTANT: Season the config file to taste
+# IMPORTANT: change your email address and domain
 edit /opt/telebit-relay/etc/telebit-relay.yml
 
 adduser --home /opt/telebit-relay --gecos '' --disabled-password telebit >/dev/null 2>&1
+sudo chown -R telebit:telebit /opt/telebit-relay/
 
 systemctl daemon-reload
 systemctl restart telebit-relay
