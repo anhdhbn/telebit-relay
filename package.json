@@ -52,5 +52,9 @@
     "serve-static": "^1.13.2",
     "sni": "^1.0.0",
     "ws": "^5.1.1"
+  },
+  "engineStrict" : true,
+  "engines": {
+    "node": "10.2.1"
   }
 }
