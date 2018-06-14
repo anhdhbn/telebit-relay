@@ -19,15 +19,15 @@ function help() {
   console.info('');
   console.info('Usage:');
   console.info('');
-  console.info('\ttelebitd --config <path>');
+  console.info('\ttelebit-relay --config <path>');
   console.info('');
   console.info('Example:');
   console.info('');
-  console.info('\ttelebitd --config /etc/telebit/telebitd.yml');
+  console.info('\ttelebit-relay --config /opt/telebit-relay/etc/telebit-relay.yml');
   console.info('');
   console.info('Config:');
   console.info('');
-  console.info('\tSee https://git.coolaj86.com/coolaj86/telebitd.js');
+  console.info('\tSee https://git.coolaj86.com/coolaj86/telebit-relay.js');
   console.info('');
   console.info('');
   process.exit(0);
@@ -86,7 +86,7 @@ function applyConfig(config) {
       var vhost = state.config.vhost.replace(/:hostname/, opts.domains[0]);
       require('fs').readdir(vhost, function (err, nodes) {
         if (state.debug) { console.log('[sni] checking fs vhost', opts.domains[0], !err); }
-        if (err) { check(); return; } 
+        if (err) { check(); return; }
         if (nodes) { approve(); }
       });
       return;
@@ -294,7 +294,7 @@ function adjustArgs() {
     .option('--serve <URL>', 'comma separated list of <proto>:<//><servername>:<port> to which matching incoming http and https should forward (reverse proxy). Ex: https://john.example.com,tls:*:1337', collectProxies, [ ])
     .option('--ports <PORT>', 'comma separated list of ports on which to listen. Ex: 80,443,1337', collectPorts, [ ])
     .option('--servernames <STRING>', 'comma separated list of servernames to use for the admin interface. Ex: tunnel.example.com,tunnel.example.net', collectServernames, [ ])
-    .option('--secret <STRING>', 'the same secret used by telebitd (used for JWT authentication)')
+    .option('--secret <STRING>', 'the same secret used by telebit-relay (used for JWT authentication)')
     .parse(process.argv)
     ;
 
