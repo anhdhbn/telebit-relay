@@ -63,6 +63,37 @@ Windows & Node.js
 
 There is [a bug](https://github.com/nodejs/node/issues/20241) in node v9.x that causes telebit-relay to crash.
 
+Manually Install
+-----------
+
+```bash
+git clone https://git.coolaj86.com/coolaj86/telebit-relay.js.git telebit-relay
+
+# we're very picky to due to bugs in various versions of v8, v9, and v10
+export NODEJS_VER="v10.2.1"
+
+# We can keep everything self-contained
+export NPM_CONFIG_PREFIX=/opt/telebit-relay
+export NODE_PATH=/opt/telebit-relay/lib/node_modules
+
+curl -fsSL https://bit.ly/node-installer | bash -s -- --no-dev-deps
+
+pushd /opt/telebit-relay
+  bin/node bin/npm install
+  rsync -a examples/telebit-relay.yml etc/telebit-relay.yml
+  rsync -a dist/etc/systemd/system/telebit-relay.service /etc/systemd/system/telebit-relay.service
+popd
+
+# IMPORTANT: Season to taste
+edit /opt/telebit-relay/etc/telebit-relay.yml
+
+systemctl daemon-reload
+systemctl restart telebit-relay
+
+systemctl status telebit-relay
+journalctl -xefu telebit-relay
+```
+
 Usage
 ====
 
