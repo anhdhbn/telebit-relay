@@ -25,8 +25,31 @@
 
     <center>
       <h1>Telebit</h1>
-      <p>Access anything, anywhere, anytime.</p>
+      <p>Friends don't let friends localhost.</p>
+      <p>Friends enable friends to share anything, access anywhere, connect anytime.</p>
     </center>
+
+    <div style="width: 800px; margin: auto;">
+      <div>
+        <h2>Share and Test over HTTPS</h2>
+        <p>End-to-End Encryption with Free (or custom) Domains</p>
+        <pre><code>$ telebit http 3000</code></pre>
+
+<pre><code>&gt; Serving localhost:3000 as https://lucky-duck-42.telebit.cloud
+&gt; Go forth and share!
+&gt; ex: curl https://lucky-duck-42.telebit.cloud</code></pre>
+      </div>
+      <div>
+        <h2>Remote and Pair over SSH</h2>
+        <p>Securely As Needed or Conveniently Always On</p>
+        <pre><code>$ telebit ssh 22</code></pre>
+
+<pre><code>&gt; Serving ssh at lucky-duck-42.telebit.cloud on port 5050
+&gt; ex: ssh lucky-duck-42.telebit.cloud -p 5050
+&gt; ex: ssh lucky-duck-42.telebit.cloud -o \
+   ProxyCommand='openssl s_client -connect %h:443 -quiet'</code></pre>
+      </div>
+    </div>
 
     <div style="width: 500px; margin: auto;">
 
