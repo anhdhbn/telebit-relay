@@ -121,8 +121,8 @@ mkdir -p $my_tmp
 
 echo "sudo mkdir -p '$TELEBIT_RELAY_PATH'"
 sudo mkdir -p "$TELEBIT_RELAY_PATH"
-echo "sudo mkdir -p '/opt/$my_app/etc'"
-sudo mkdir -p "/opt/$my_app/etc/"
+echo "sudo mkdir -p '$TELEBIT_RELAY_PATH/etc'"
+sudo mkdir -p "$TELEBIT_RELAY_PATH/etc/"
 
 set +e
 #https://git.coolaj86.com/coolaj86/telebit-relay.js.git
@@ -173,17 +173,17 @@ if [ -z "$(cat /etc/passwd | grep $my_user)" ]; then
   sudo adduser --home $TELEBIT_RELAY_PATH --gecos '' --disabled-password $my_user >/dev/null 2>&1
 fi
 
-if [ ! -f "/opt/$my_app/etc/$my_app.yml" ]; then
+if [ ! -f "$TELEBIT_RELAY_PATH/etc/$my_app.yml" ]; then
   echo "### Creating config file from template. sudo may be required"
-  #echo "sudo rsync -a examples/$my_app.yml /opt/$my_app/etc/$my_app.yml"
-  sudo bash -c "echo 'email: $my_email' >> /opt/$my_app/etc/$my_app.yml"
-  sudo bash -c "echo 'secret: $my_secret' >> /opt/$my_app/etc/$my_app.yml"
-  sudo bash -c "echo 'servernames: [ $my_servername ]' >> /opt/$my_app/etc/$my_app.yml"
-  sudo bash -c "cat examples/$my_app.yml.tpl >> /opt/$my_app/etc/$my_app.yml"
+  #echo "sudo rsync -a examples/$my_app.yml $TELEBIT_RELAY_PATH/etc/$my_app.yml"
+  sudo bash -c "echo 'email: $my_email' >> $TELEBIT_RELAY_PATH/etc/$my_app.yml"
+  sudo bash -c "echo 'secret: $my_secret' >> $TELEBIT_RELAY_PATH/etc/$my_app.yml"
+  sudo bash -c "echo 'servernames: [ $my_servername ]' >> $TELEBIT_RELAY_PATH/etc/$my_app.yml"
+  sudo bash -c "cat $TELEBIT_RELAY_PATH/examples/$my_app.yml.tpl >> $TELEBIT_RELAY_PATH/etc/$my_app.yml"
 fi
 
-echo "sudo chown -R $my_user '$TELEBIT_RELAY_PATH' '/opt/$my_app/etc'"
-sudo chown -R $my_user "$TELEBIT_RELAY_PATH" "/opt/$my_app/etc"
+echo "sudo chown -R $my_user '$TELEBIT_RELAY_PATH'"
+sudo chown -R $my_user "$TELEBIT_RELAY_PATH"
 
 echo "### Adding $my_app is a system service"
 echo "sudo rsync -a $TELEBIT_RELAY_PATH/dist/etc/systemd/system/$my_app.service /etc/systemd/system/$my_app.service"
@@ -202,7 +202,7 @@ echo "=============================================="
 echo "  Privacy Settings in Config"
 echo "=============================================="
 echo ""
-echo "The example config file /opt/$my_app/etc/$my_app.yml opts-in to"
+echo "The example config file $TELEBIT_RELAY_PATH/etc/$my_app.yml opts-in to"
 echo "contributing telemetrics and receiving infrequent relevant updates"
 echo "(probably once per quarter or less) such as important notes on"
 echo "a new release, an important API change, etc. No spam."
@@ -219,13 +219,13 @@ echo "=============================================="
 echo ""
 echo "Edit the config and restart, if desired:"
 echo ""
-echo "    sudo vim /opt/$my_app/etc/$my_app.yml"
+echo "    sudo vim $TELEBIT_RELAY_PATH/etc/$my_app.yml"
 echo "    sudo systemctl restart $my_app"
 echo ""
 echo "Or disabled the service and start manually:"
 echo ""
 echo "    sudo systemctl stop $my_app"
 echo "    sudo systemctl disable $my_app"
-echo "    $my_app --config /opt/$my_app/etc/$my_app.yml"
+echo "    $my_app --config $TELEBIT_RELAY_PATH/etc/$my_app.yml"
 echo ""
 sleep 1
