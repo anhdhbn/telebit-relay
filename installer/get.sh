@@ -68,6 +68,7 @@ my_app="telebit-relay"
 my_bin="telebit-relay.js"
 my_name="Telebit Relay"
 my_repo="telebit-relay.js"
+exec 3<>/dev/tty
 
 if [ -z "${my_email}" ]; then
   echo ""
@@ -77,7 +78,7 @@ if [ -z "${my_email}" ]; then
   echo "To accept the Terms of Service for Telebit, Greenlock and Let's Encrypt,"
   echo "please enter your email."
   echo ""
-  read -p "email: " my_email
+  read -u 3 -p "email: " my_email
   echo ""
   # UX - just want a smooth transition
   sleep 0.5
@@ -86,7 +87,7 @@ fi
 if [ -z "${my_servername}" ]; then
   echo "What is the domain of this server (for admin interface)?"
   echo ""
-  read -p "domain (ex: telebit-relay.example.com): " my_servername
+  read -u 3 -p "domain (ex: telebit-relay.example.com): " my_servername
   echo ""
   # UX - just want a smooth transition
   sleep 0.5
