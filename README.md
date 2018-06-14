@@ -87,6 +87,8 @@ popd
 # IMPORTANT: Season to taste
 edit /opt/telebit-relay/etc/telebit-relay.yml
 
+adduser --home /opt/telebit-relay --gecos '' --disabled-password telebit >/dev/null 2>&1
+
 systemctl daemon-reload
 systemctl restart telebit-relay
 
