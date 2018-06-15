@@ -1,3 +1,4 @@
+emails
 node_modules.*
 include
 bin/node

@@ -1,0 +1,11 @@
+{ "terms_of_service": ":hostname/tos/"
+, "api_host": "api.:hostname"
+, "pair_request": {
+    "method": "POST"
+  , "pathname": "api/telebit.cloud/pair_request"
+  }
+, "tunnel": {
+    "method": "wss"
+  , "pathname": ""
+  }
+}
