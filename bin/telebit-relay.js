@@ -134,7 +134,7 @@ function applyConfig(config) {
     // TODO specify extensions in config file
     state.extensions = require('../lib/extensions');
   } catch(e) {
-    if (state.debug) { console.log('[DEBUG] no extensions loaded', e); }
+    if ('ENOENT' !== e.code || state.debug) { console.log('[DEBUG] no extensions loaded', e); }
     state.extensions = {};
   }
   require('../lib/handlers').create(state); // adds directly to config for now...
