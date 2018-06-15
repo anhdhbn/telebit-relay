@@ -13,3 +13,7 @@ greenlock:
     strategy: le-store-certbot # certificate storage plugin
   config_dir: /etc/acme        # directory for ssl certificates
 secret: ''                     # generate with node -e "console.log(crypto.randomBytes(16).toString('hex'))"
+mailer:
+  url: 'https://api.mailgun.net/v3/EXAMPLE.COM/messages'
+  api_key: 'key-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+  from: 'Example Mailer <MALIER@EXAMPLE.COM>'

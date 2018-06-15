@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!--meta http-equiv="refresh" content="5;url=https://' + tokenData.domains.join(',') + '/?serviceport=' + tokenData.ports.join(',')" /-->
+</head>
+<body>
+  <script>document.body.hidden = true;</script>
+
+  <div class="js-error" hidden>
+  </div>
+
+  <div class="js-magic" hidden>
+    <h1>Give us about 30 seconds...</h1>
+    We're initializing our connection, redirecting you to your device at
+    <a class="js-new-href">{{js-new-href}}</a>
+    which will then take a few seconds to initialize as it gets your https certificates for peer-to-peer, end-to-end encryption
+    <br>
+    <br>
+    <small><pre><code class="js-token-data">{{js-token-data}}</code></pre></small>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
+
+    res.send("<h1>Invalid Magic Link</h1>"
+    + "<pre><code>'" + magic + "' isn't a valid link.\nLinks are only good for 5 minutes, so act fast.\n"
+    + "(" + new Date(1000*((_auths[magic]||{}).dt||0)).toISOString() + ")</code></pre>\n"
+    );
