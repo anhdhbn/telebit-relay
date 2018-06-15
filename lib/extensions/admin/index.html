@@ -47,7 +47,7 @@
 <pre><code>&gt; Serving ssh at lucky-duck-42.telebit.cloud on port 5050
 &gt; ex: ssh lucky-duck-42.telebit.cloud -p 5050
 &gt; ex: ssh lucky-duck-42.telebit.cloud -o \
-   ProxyCommand='openssl s_client -connect %h:443 -quiet'</code></pre>
+   ProxyCommand='openssl s_client -connect %h:443 -servername %h -quiet'</code></pre>
       </div>
     </div>
 
