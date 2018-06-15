@@ -7,6 +7,10 @@
   <script>document.body.hidden = true;</script>
 
   <div class="js-error" hidden>
+    <h1>Invalid Magic Link</h1>
+    <div class="js-magic-link">'{{magic_link}}' isn't a valid magic link code.
+      <br>Links are only good for 5 minutes, so you gotta act fast.
+    </div>
   </div>
 
   <div class="js-magic" hidden>
@@ -22,8 +26,3 @@
   <script src="js/app.js"></script>
 </body>
 </html>
-
-    res.send("<h1>Invalid Magic Link</h1>"
-    + "<pre><code>'" + magic + "' isn't a valid link.\nLinks are only good for 5 minutes, so act fast.\n"
-    + "(" + new Date(1000*((_auths[magic]||{}).dt||0)).toISOString() + ")</code></pre>\n"
-    );
