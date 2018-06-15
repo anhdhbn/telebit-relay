@@ -1,4 +1,10 @@
 node_modules.*
+include
+bin/node
+bin/npm
+bin/npx
+share
+etc
 
 # Logs
 logs
