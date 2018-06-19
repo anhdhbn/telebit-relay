@@ -1,0 +1,7 @@
+{ "terms_of_service": ":hostname/tos/"
+, "api_host": ":hostname"
+, "tunnel": {
+    "method": "wss"
+  , "pathname": ""
+  }
+}
