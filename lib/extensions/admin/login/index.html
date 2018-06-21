@@ -13,14 +13,49 @@
     </div>
   </div>
 
-  <div class="js-magic" hidden>
-    <h1>Give us about 30 seconds...</h1>
-    We're initializing our connection, redirecting you to your device at
-    <a class="js-new-href">{{js-new-href}}</a>
-    which will then take a few seconds to initialize as it gets your https certificates for peer-to-peer, end-to-end encryption
-    <br>
-    <br>
-    <small><pre><code class="js-token-data">{{js-token-data}}</code></pre></small>
+  <div class="js-magic" hidden><form class="js-submit">
+    <h1>Telebit</h1>
+    <h2>Pair <span class="js-hostname">Device</span></h1>
+
+    <p>Enter your device pairing code:
+      <input type="text" name="pair-code" placeholder="ex: 000 000">
+    </p>
+
+    <ul>
+      <li><label><input name="telebit-agree" type="checkbox" required> Agree to Telebit Terms of Service</label>
+      </li>
+      <li><label><input name="letsencrypt-agree" type="checkbox" required> Agree to Let's Encrypt Terms of Service</label>
+      </li>
+    </ul>
+
+    <p>
+    <button type="submit">Claim Device</button>
+    </p>
+  </form></div>
+
+  <div class="js-authz" hidden>
+
+    <h1>Telebit Authorized</h1>
+
+    <h2>Waiting for your device to connect...</h2>
+    <p>Check your device to complete the pairing.</p>
+
+    <h2>🔒 <span class="js-domainname">xxx-xxx-xxx.example.com</span></h2>
+    <p>When your device is paired you will be redirected to
+      <a class="js-new-href">{{js-new-href}}</a>.
+    </p>
+
+    <h2 class="js-serviceport">xxxxx</h2>
+    <p>When your device is paired you will be able to use <span class="js-serviceport">xxxxx</span>
+    for SSH, and other TCP protocols.</p>
+    <pre><code>telebit ssh auto
+
+ssh <span class="js-domainname">{{servername}}</span> -p <span class="js-serviceport">{{serviceport}}</span></code></pre>
+</code></pre>
+
+    <h2>Authorization Token</h2>
+    <small><pre><code class="js-token">{{js-token}}</code></pre></small>
+
   </div>
 
   <script src="js/app.js"></script>
