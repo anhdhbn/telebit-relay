@@ -1,0 +1,5 @@
+servernames: [ 'telebit.cloud' ]
+email: 'coolaj86@gmail.com'
+agree_tos: true
+community_member: false
+vhost: /srv/www/:hostname

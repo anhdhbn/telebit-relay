@@ -1,17 +1,20 @@
-email: 'jon@example.com'       # must be valid (for certificate recovery and security alerts)
-agree_tos: true                # agree to the Telebit, Greenlock, and Let's Encrypt TOSes
-community_member: true         # receive infrequent relevant updates
-telemetry: true                # contribute to project telemetric data
+email: coolaj86@gmail.com
+agree_tos: true
+community_member: true
+telemetry: true
 webmin_domain: example.com
-shared_domain: xm.pl
-servernames:                   # hostnames that direct to the Telebit Relay admin console
-  - telebit.example.com
-  - telebit.example.net
-vhost: /srv/www/:hostname      # load secure websites at this path (uses template string, i.e. /var/www/:hostname/public)
+api_domain: example.com
+shared_domain: example.com
+servernames:
+  - www.example.com
+  - example.com
+  - api.example.com
+vhost: /srv/www/:hostname
 greenlock:
   version: 'draft-11'
   server: 'https://acme-v02.api.letsencrypt.org/directory'
   store:
-    strategy: le-store-certbot # certificate storage plugin
-  config_dir: /etc/acme        # directory for ssl certificates
-secret: ''                     # generate with node -e "console.log(crypto.randomBytes(16).toString('hex'))"
+    strategy: le-store-certbot
+  config_dir: /opt/telebit-relay/etc/acme
+secret: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+debug: true

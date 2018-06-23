@@ -179,6 +179,9 @@ if [ ! -f "$TELEBIT_RELAY_PATH/etc/$my_app.yml" ]; then
   sudo bash -c "echo 'email: $my_email' >> $TELEBIT_RELAY_PATH/etc/$my_app.yml"
   sudo bash -c "echo 'secret: $my_secret' >> $TELEBIT_RELAY_PATH/etc/$my_app.yml"
   sudo bash -c "echo 'servernames: [ $my_servername ]' >> $TELEBIT_RELAY_PATH/etc/$my_app.yml"
+  sudo bash -c "echo 'webmin_domain: $my_servername' >> $TELEBIT_RELAY_PATH/etc/$my_app.yml"
+  sudo bash -c "echo 'api_domain: $my_servername' >> $TELEBIT_RELAY_PATH/etc/$my_app.yml"
+  sudo bash -c "echo 'shared_domain: $my_servername' >> $TELEBIT_RELAY_PATH/etc/$my_app.yml"
   sudo bash -c "cat $TELEBIT_RELAY_PATH/examples/$my_app.yml.tpl >> $TELEBIT_RELAY_PATH/etc/$my_app.yml"
 fi
 
