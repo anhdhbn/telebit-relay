@@ -139,6 +139,74 @@ TCP
 
     </div>
 
+    <form class="js-auth-form">
+      <input class="js-auth-subject" type="email"/>
+      <button class="js-auth-submit" type="submit">Login</button>
+    </form>
+    <script src="assets/oauth3.org/oauth3.core.js"></script>
+    <script>
+      (function () {
+        'use strict';
+        var OAUTH3 = window.OAUTH3;
+        var oauth3 = OAUTH3.create(window.location);
+        var $ = function () { return document.querySelector.apply(document, arguments); }
+
+				function onChangeProvider(providerUri) {
+					// example https://oauth3.org
+					return oauth3.setIdentityProvider(providerUri);
+				}
+
+				// This opens up the login window for the specified provider
+				//
+				function onClickLogin(ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+
+          // TODO check subject for provider viability
+          return oauth3.authenticate({
+            subject: $('.js-auth-subject').value
+          }).then(function (session) {
+
+						console.info('Authentication was Successful:');
+						console.log(session);
+
+						// You can use the PPID (or preferably a hash of it) as the login for your app
+						// (it securely functions as both username and password which is known only by your app)
+						// If you use a hash of it as an ID, you can also use the PPID itself as a decryption key
+						//
+						console.info('Secure PPID (aka subject):', session.token.sub);
+
+						return oauth3.request({
+							url: 'https://api.oauth3.org/api/issuer@oauth3.org/jwks/:sub/:kid.json'
+                .replace(/:sub/g, session.token.sub)
+                .replace(/:kid/g, session.token.iss)
+						, session: session
+						}).then(function (resp) {
+              console.info("Public Key:");
+              console.log(resp.data);
+
+              return oauth3.request({
+                url: 'https://api.oauth3.org/api/issuer@oauth3.org/acl/profile'
+              , session: session
+              }).then(function (resp) {
+
+                console.info("Inspect Token:");
+                console.log(resp.data);
+
+              });
+
+						});
+
+					}, function (err) {
+						console.error('Authentication Failed:');
+						console.log(err);
+					});
+
+				}
+        $('body form.js-auth-form').addEventListener('submit', onClickLogin);
+        onChangeProvider('oauth3.org');
+      }());
+    </script>
     <script src="js/app.js"></script>
   </body>
 </html>
