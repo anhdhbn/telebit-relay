@@ -37,8 +37,7 @@
   },
   "homepage": "https://git.coolaj86.com/coolaj86/telebit-relay.js",
   "dependencies": {
-    "@coolaj86/urequest": "^1.1.1",
-    "bluebird": "^3.5.1",
+    "@coolaj86/urequest": "^1.3.2",
     "body-parser": "^1.18.3",
     "cluster-store": "^2.0.8",
     "connect-cors": "^0.5.6",
@@ -48,15 +47,21 @@
     "greenlock": "^2.2.4",
     "human-readable-ids": "^1.0.4",
     "js-yaml": "^3.11.0",
-    "jsonwebtoken": "^8.2.1",
+    "jsonwebtoken": "^8.3.0",
+    "jwk-to-pem": "^2.0.0",
+    "mkdirp": "^0.5.1",
     "nowww": "^1.2.1",
     "proxy-packer": "^1.4.3",
     "recase": "^1.0.4",
     "redirect-https": "^1.1.5",
     "request": "^2.87.0",
+    "safe-replace": "^1.0.3",
     "serve-static": "^1.13.2",
     "sni": "^1.0.0",
     "ws": "^5.1.1"
+  },
+  "trulyOptionalDependencies": {
+    "bluebird": "^3.5.1"
   },
   "engineStrict": true,
   "engines": {
