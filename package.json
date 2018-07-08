@@ -37,7 +37,7 @@
   },
   "homepage": "https://git.coolaj86.com/coolaj86/telebit-relay.js",
   "dependencies": {
-    "@coolaj86/urequest": "^1.3.2",
+    "@coolaj86/urequest": "^1.3.5",
     "body-parser": "^1.18.3",
     "cluster-store": "^2.0.8",
     "connect-cors": "^0.5.6",
