@@ -1,0 +1,16 @@
+{
+  "name": "telebit.commercial",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Commercial node.js APIs for Telebit",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "SEE LICENSE IN LICENSE",
+  "dependencies": {
+    "jwk-to-pem": "^2.0.0",
+    "oauth3.js": "^1.2.5"
+  }
+}
