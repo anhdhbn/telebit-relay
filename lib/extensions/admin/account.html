@@ -9,6 +9,17 @@
       <button class="js-auth-submit" type="submit">Login</button>
     </form>
 
+    <div class="v-app">
+			<ol>
+				<li v-for="domain in domains">
+					{{ domain }}
+				</li>
+			</ol>
+    </div>
+
+    <!-- development version, includes helpful console warnings -->
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
     <script src="assets/oauth3.org/oauth3.core.js"></script>
     <script>
       (function () {
@@ -48,8 +59,14 @@
             //
             console.info('Secure PPID (aka subject):', session.token.sub);
 
-            function listStuff() {
-              window.alert("TODO: show authorized devices, domains, and connectivity information");
+            function listStuff(data) {
+              //window.alert("TODO: show authorized devices, domains, and connectivity information");
+              var app6 = new Vue({
+                el: '.v-app',
+                data: {
+                  domains: data.domains
+                }
+              });
             }
 
             return oauth3.request({
@@ -76,6 +93,11 @@
 
                   console.info("Telebit Account:");
                   console.log(resp.data);
+
+                  if (resp.data && resp.data.domains) {
+                    listStuff(resp.data);
+                    return;
+                  }
 
                   if (1 === resp.data.accounts.length) {
                     listStuff(resp);
