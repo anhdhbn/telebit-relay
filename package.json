@@ -1,6 +1,6 @@
 {
   "name": "telebit-relay",
-  "version": "0.13.1",
+  "version": "0.20.0",
   "description": "Friends don't let friends localhost. Expose your bits with a secure connection even from behind NAT, Firewalls, in a box, with a fox, on a train or in a plane... or a Raspberry Pi in your closet. An attempt to create a better localtunnel.me server, a more open ngrok. Uses Automated HTTPS (Free SSL) via ServerName Indication (SNI). Can also tunnel tls and plain tcp.",
   "main": "lib/relay.js",
   "bin": {
@@ -51,7 +51,7 @@
     "jwk-to-pem": "^2.0.0",
     "mkdirp": "^0.5.1",
     "nowww": "^1.2.1",
-    "proxy-packer": "^1.4.3",
+    "proxy-packer": "^2.0.0",
     "recase": "^1.0.4",
     "redirect-https": "^1.1.5",
     "request": "^2.87.0",
