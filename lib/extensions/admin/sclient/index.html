@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <title>sclient - tls unwrapper for Windows, Mac, and Linux</title>
+  </head>
+
+  <body>
+
+  <h1>sclient</h1> 
+  <p>ssl unwrapper for Windows, Mac, and Linux</p>
+  <p>a poor man's alternative to <code>openssl s_client</code>, <code>stunnel</code>, <code>socat</code>
+    for the simple use case of connecting a client application that doesn't support tls+sni
+    through a secure connection, https proxy, or sni multiplexer
+    (think <code>telnet</code>, <code>netcat</code>, <code>ssh</code>, <code>openvpn</code>, etc).</p>
+
+  <h2>Usage</h2>
+  <pre><code>$ sclient [-k] &lt;remote> &lt;local></code></pre>
+  <h3>Flags</h3>
+  <ul>
+    <li><kbd>-k, --insecure</kbd> ignore invalid tls certificates</li>
+  </ul>
+  <h3>Arguments</h3>
+  <ul>
+    <li><kbd>&lt;remote&gt;</kbd> the servername and port of the tls-enabled server (default port is 443)</li>
+    <li><kbd>&lt;local&gt;</kbd> the local address and port to bind to (default bind address is 127.0.0.1 or ::1)
+      <ul>
+        <li><code>-</code> may be used to read from stdin (like netcat)</li>
+        <li>may be omitted when piping <code>printf "GET / HTTP/1.1\r\n\r\n" | sclient telebit.cloud</code></li>
+      </ul>
+    </li>
+  </ul>
+
+  <h2>Example</h2>
+  <pre><code>$ sclient example.com:443 localhost:3000
+&gt; [listening] example.com:443 &lt;= localhost:3000</code></pre>
+  <pre><code>$ telnet localhost 3000</code></pre>
+
+  <h2>Downloads (standalone) <small>v1.1</small></h2>
+  <ul>
+    <li>Windows 7/8/10
+      <a href="dist/windows/amd64/sclient.exe">Download</a>
+      | <a href="dist/windows/386/sclient.exe">(x86)</a>
+    </li>
+    <li>macOS / OS X / Darwin
+      <a href="dist/darwin/amd64/sclient">Download</a>
+    </li>
+    <li>Linux Ubuntu/Arch/etc
+      <a href="dist/linux/amd64/sclient">Download</a>
+      | <a href="dist/linux/386/sclient">(386)</a>
+    </li>
+    <li>Raspberry Pi
+      <a href="dist/linux/armv7/sclient">Download</a>
+      | <a href="dist/linux/armv5/sclient">(Pi Zero)</a>
+    </li>
+    <li>Source Code
+      <a href="https://git.coolaj86.com/coolaj86/sclient.go">Go (golang)</a>
+      | <a href="https://git.coolaj86.com/coolaj86/sclient.js">node.js</a>
+    </li>
+  </ul>
+
+  <h2>Source Code</h2>
+  <p><code>sclient</code> is maintained simultaneously in go and node.js</p>
+  <ul>
+    <li>Go
+      <ul>
+        <li><a href="https://git.coolaj86.com/coolaj86/sclient.go">git</a></li>
+        <li><a href="https://git.coolaj86.com/coolaj86/sclient.go/archive/master.zip">zip</a></li>
+      </ul>
+    </li>
+    <br>
+    <li>node.js
+    <ul>
+        <li><a href="https://git.coolaj86.com/coolaj86/sclient.js">git</a></li>
+        <li><a href="https://git.coolaj86.com/coolaj86/sclient.js/archive/master.zip">zip</a></li>
+        <li><kbd>npm install -g sclient</kbd></li>
+    </ul>
+
+  </body>
+</html>
