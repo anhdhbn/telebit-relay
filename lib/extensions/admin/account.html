@@ -3,18 +3,37 @@
     <title>Telebit Account</title>
   </head>
   <body>
-    <h1>Login</h1>
-    <form class="js-auth-form">
-      <input class="js-auth-subject" placeholder="email" type="email"/>
-      <button class="js-auth-submit" type="submit">Login</button>
-    </form>
 
     <div class="v-app">
-			<ol>
-				<li v-for="domain in domains">
-					{{ domain }}
-				</li>
-			</ol>
+
+      <div v-if="!hasAccount">
+        <h1>Login</h1>
+        <form class="js-auth-form">
+          <input class="js-auth-subject" placeholder="email" type="email" required/>
+          <button class="js-auth-submit" type="submit">Login</button>
+        </form>
+      </div>
+
+      <div v-if="hasAccount">
+        <h1>Account</h1>
+        <form v-on:submit="challengeDns()">
+          Add a custom domain:
+          <input v-model="newDomain" placeholder="example.com" type="text" required/>
+          <button type="submit">Next</button>
+        </form>
+        <form v-on:submit="challengeEmail()">
+          Authorize another email:
+          <input v-model="newEmail" placeholder="jon@example.com" type="email" required/>
+          <button type="submit">Next</button>
+        </form>
+        <ol>
+          <li v-for="domain in domains">
+            {{ domain }}
+          </li>
+        </ol>
+        <pre><code v-text="token"></code></pre>
+      </div>
+
     </div>
 
     <!-- development version, includes helpful console warnings -->
