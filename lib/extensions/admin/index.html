@@ -54,14 +54,13 @@
             </div>
           
             <div class="demo-terminal">
-              <div class="demo-terminal-line">
-                Serving localhost:3000 as https://test-app.telebit.cloud
+              <div class="demo-terminal-input">
+                ~/telebit http 3000
               </div>
-              <div class="demo-terminal-line">
-                Go forth and share!
+              <div class="demo-terminal-line">&nbsp;
               </div>
-              <div class="demo-terminal-line">
-                ex: curl https://test-app.telebit.cloud
+              <div class="demo-terminal-output">
+                Forwarding https://jondoe.telebit.io => localhost:3000
               </div>
             </div>
           </div>
@@ -92,26 +91,42 @@
         <div class="quickstart-step">
           <div class="quickstart-step-number">2</div>
           <div class="quickstart-step-text">Claim your device via Email</div>
-          <pre class="quickstart-terminal">You've installed Telebit on 'Jon's Macbook Pro'.
+          <pre class="quickstart-terminal">You're running Telebit on 'Jon's Macbook Pro'.
 
-Authenticate your account and claim your device:
-
-    https://www.telebit.cloud/login/?magic=xxxxxxxxxxxxxx</pre>
+    Click <u>Trust Device</u> to pair with Telebit</u></pre>
         </div>
         <div class="quickstart-step">
           <div class="quickstart-step-number">3</div>
           <div class="quickstart-step-text">Enjoy Anytime, Anywhere Access</div>
-          <pre class="quickstart-terminal">HTTPS
+          <pre class="quickstart-terminal"><strong>For Local Development</strong>
 
-  https://lucky-duck-42.telebit.cloud
+  <code class="quickstart-input">~/telebit http 3000</code>
+  <code class="quickstart-output">Forwarding https://jondoe.telebit.io =&gt; localhost:3000</code>
 
-SSH
+  <code class="quickstart-input">curl -fsSL https://jondoe.telebit.io/</code>
 
-  ssh ssh.telebit.cloud -p 22222
+<strong>For Sharing Files</strong>
 
-TCP
+  <code class="quickstart-input">~/telebit http ./project.zip</code>
+  <code class="quickstart-output">Serving ./project.zip as https://jondoe.telebit.io</code>
 
-  netcat tcp.telebit.cloud 22222<Paste></pre>
+  <code class="quickstart-input">curl -fsSL https://jondoe.telebit.io/</code>
+
+<strong>For Access with SSH</strong>
+
+  <code class="quickstart-input">~/telebit ssh auto</code>
+  <code class="quickstart-output">Forwarding jondoe.telebit.io -p 5050 =&gt; localhost:22</code>
+  <code class="quickstart-output">Forwarding ssh+https (openssl proxy) =&gt; localhost:22</code>
+
+  <code class="quickstart-input">ssh -p 5050 jondoe.telebit.io</code>
+  <code class="quickstart-input">ssh -o ProxyCommand="sclient %h:443" jondoe.telebit.io</code>
+
+<strong>For Debugging with TCP</strong>
+
+  <code class="quickstart-input">~/telebit tcp 9000</code>
+  <code class="quickstart-output">Forwarding jondoe.telebit.io -p 5050 =&gt; localhost:9000</code>
+
+  <code class="quickstart-input">netcat jondoe.telebit.io 5050</code></pre>
         </div>
       </div>
     </div>

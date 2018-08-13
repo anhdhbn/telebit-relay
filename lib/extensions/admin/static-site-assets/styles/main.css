@@ -5,7 +5,7 @@ body{
   margin: 0;
 }
 
-a, u {
+a {
   text-decoration: none;
   color: inherit;
 }
@@ -30,7 +30,7 @@ a:hover, u:hover {
 }
 
 .container {
-  width: 788px;
+  width: 840px;
   margin: auto;
 }
 
@@ -96,7 +96,7 @@ a.link-button.wide {
   margin: 1em 9.4444em 0;
   position: relative;
   height: 236px;
-  width: 560px;
+  width: 644px;
   overflow: hidden;
 }
 
@@ -104,7 +104,7 @@ a.link-button.wide {
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 488px;
+  width: 544px;
   height: 236px;
   background-color: #ffffff;
   border-radius: 4px 4px 0 0;
@@ -161,7 +161,8 @@ a.link-button.wide {
 }
 
 .demo-terminal {
-  width: 418px;
+  /*width: 418px;*/
+  width: 512px;
   position: absolute;
   font-size: 15px;
   background-color: #f7f7f7;
@@ -177,6 +178,16 @@ a.link-button.wide {
 }
 
 .demo-terminal-line:before {
+  content: " ";
+}
+.demo-terminal-input:before {
+  content: "$";
+}
+.demo-terminal-output {
+  padding-left: 1em;
+  text-indent: -1em;
+}
+.demo-terminal-output:before {
   content: ">";
 }
 
@@ -233,6 +244,15 @@ body {}
   line-height: 1.33;
   margin: 0;
   padding: 0.8em 0 0.8em 2em;
+}
+.quickstart-line:before {
+  content: "  ";
+}
+.quickstart-input:before {
+  content: "$ ";
+}
+.quickstart-output:before {
+  content: "> ";
 }
 
 h3 {
