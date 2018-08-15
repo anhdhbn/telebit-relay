@@ -1,0 +1,27 @@
+.quickstart-step-text {
+  align-items: center;
+  justify-content: center;
+  margin: 0 0 1.5em;
+}
+
+.quickstart-step {
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.quickstart-terminal {
+    flex: 0 0;
+}
+
+.container.quickstart-container {
+    padding: 0;
+}
+
+@media (max-width: 900px) {
+
+  .donate-section p {
+      margin: 1.77777778em 10%;
+  }
+
+}
