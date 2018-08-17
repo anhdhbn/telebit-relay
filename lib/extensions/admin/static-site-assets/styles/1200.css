@@ -25,17 +25,23 @@
       font-size: 1.6em;
   }
 
-}
+  .quickstart-terminal {
+      width: 100%;
+      box-sizing: border-box;
+      font-size: .95em;
+  }
 
 
-h2 {
-    font-size: 1.9em;
+  h2 {
+      font-size: 1.9em;
+  }
+
+  .quickstart-step-name {
+      font-size: 1.2em;
+  }
+
+  h3 {
+      font-size: 1.5em;
+  }
 }
 
-.quickstart-step-name {
-    font-size: 1.2em;
-}
-
-h3 {
-    font-size: 1.5em;
-}
