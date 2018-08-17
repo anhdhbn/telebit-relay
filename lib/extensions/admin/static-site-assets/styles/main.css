@@ -3,6 +3,8 @@ body{
   font-size: 18px;
   line-height: 1.3333;
   margin: 0;
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
 }
 
 a {
@@ -191,7 +193,7 @@ a.link-button.wide {
   content: ">";
 }
 
-h2 {text-align: center;font-size: 1.777778em;margin: 0 0 1.25em 0;}
+h2 {text-align: center;font-size: 1.77778em;margin: 0 0 1.25em 0;}
 
 body {}
 

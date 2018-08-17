@@ -22,6 +22,20 @@
 
   .donate-section p {
       margin: 1.77777778em 10%;
+      font-size: 1.6em;
   }
 
+}
+
+
+h2 {
+    font-size: 1.9em;
+}
+
+.quickstart-step-name {
+    font-size: 1.2em;
+}
+
+h3 {
+    font-size: 1.5em;
 }
