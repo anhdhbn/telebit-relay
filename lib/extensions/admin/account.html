@@ -27,17 +27,23 @@
           <button type="submit">Next</button>
         </form>
         <h3>Claims</h3>
+        <p>If your DNS host supports ANAME records, please use those instead of CNAMEs.</p>
+        <p>If CNAMEs are not supported, set an A record to {{ site.deviceDomainA }}.</p>
         <ol>
           <li v-for="claim in claims">
             <span>{{ claim.value }}</span>
+            <br>
+            <span v-if="'dns' === claim.type">CNAME <span v-if="claim.wildcard">*.</span>{{ claim.value }}: {{ site.deviceDomain }}</span>
+            <br>
             <span v-if="'dns' === claim.type">TXT _claim-challenge.{{ claim.value }}: {{ claim.challenge }}</span>
+            <br>
             <button v-on:click.prevent="checkDns(claim)">Check</button>
           </li>
         </ol>
         <h3>Domains</h3>
         <ol>
           <li v-for="domain in domains">
-            {{ domain }}
+            <span v-if="domain.wildcard">*.</span>{{ domain.name }} <span v-if="domain.hostname">- {{domain.hostname}} ({{domain.os}} {{domain.arch}})</span>
           </li>
         </ol>
         <pre><code v-text="token"></code></pre>
