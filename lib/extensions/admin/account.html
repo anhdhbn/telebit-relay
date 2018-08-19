@@ -16,16 +16,25 @@
 
       <div v-if="hasAccount">
         <h1>Account</h1>
-        <form v-on:submit="challengeDns()">
+        <form v-on:submit.prevent="challengeDns()">
           Add a custom domain:
           <input v-model="newDomain" placeholder="example.com" type="text" required/>
           <button type="submit">Next</button>
         </form>
-        <form v-on:submit="challengeEmail()">
+        <form v-on:submit.prevent="challengeEmail()">
           Authorize another email:
           <input v-model="newEmail" placeholder="jon@example.com" type="email" required/>
           <button type="submit">Next</button>
         </form>
+        <h3>Claims</h3>
+        <ol>
+          <li v-for="claim in claims">
+            <span>{{ claim.value }}</span>
+            <span v-if="'dns' === claim.type">TXT _claim-challenge.{{ claim.value }}: {{ claim.challenge }}</span>
+            <button v-on:click.prevent="checkDns(claim)">Check</button>
+          </li>
+        </ol>
+        <h3>Domains</h3>
         <ol>
           <li v-for="domain in domains">
             {{ domain }}

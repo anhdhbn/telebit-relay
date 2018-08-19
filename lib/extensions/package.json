@@ -11,6 +11,7 @@
   "license": "SEE LICENSE IN LICENSE",
   "dependencies": {
     "jwk-to-pem": "^2.0.0",
-    "oauth3.js": "^1.2.5"
+    "oauth3.js": "^1.2.5",
+    "scmp": "^1.0.2"
   }
 }
