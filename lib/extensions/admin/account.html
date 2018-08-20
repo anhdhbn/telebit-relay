@@ -51,9 +51,12 @@
           <ol>
             <li v-for="device in devices">
               <span v-if="device.id">{{ device.id }}</span> {{ device.socketId }}
-              <ol>
+              <ul>
+                <li><form v-on:submit.stop.prevent="pushDomain(device)">
+                  <input type="text" v-model="device.newDomain" placeholder="ex: jon.telebit.com"></input><button type="submit">Push</button>
+                </form></li>
                 <li v-for="name in device.names">{{ name }}</li>
-              </ol>
+              </ul>
             </li>
           </ol>
         </div>
