@@ -18,37 +18,61 @@
       <div v-if="hasAccount">
         <h1>Account</h1>
         <button v-on:click.prevent.stop="logout()" type="click">Logout</button>
-        <form v-on:submit.prevent="challengeDns()">
-          Add a custom domain:
-          <input v-model="newDomain" placeholder="example.com" type="text" required/>
-          <button type="submit">Next</button>
-        </form>
         <!-- not yet -->
         <!--form v-on:submit.prevent="challengeEmail()">
           Authorize another email:
           <input v-model="newEmail" placeholder="jon@example.com" type="email" required/>
           <button type="submit">Next</button>
         </form-->
-        <h3>Claims</h3>
-        <p>If your DNS host supports ANAME records, please use those instead of CNAMEs.</p>
-        <p>If CNAMEs are not supported, set an A record to {{ site.deviceDomainA }}.</p>
-        <ol>
-          <li v-for="claim in claims">
-            <span>{{ claim.value }}</span>
-            <br>
-            <span v-if="'dns' === claim.type">CNAME <span v-if="claim.wildcard">*.</span>{{ claim.value }}: {{ site.deviceDomain }}</span>
-            <br>
-            <span v-if="'dns' === claim.type">TXT _claim-challenge.{{ claim.value }}: {{ claim.challenge }}</span>
-            <br>
-            <button v-on:click.prevent="checkDns(claim)">Check</button>
-          </li>
-        </ol>
+
+        <div v-if="claims.length">
+          <h3>Pending Claims</h3>
+          <p>If your DNS host supports ANAME records, please use those instead of CNAMEs.</p>
+          <p>If CNAMEs are not supported, set an A record to {{ site.deviceDomainA }}.</p>
+          <ol>
+            <li v-for="claim in claims">
+              <span>{{ claim.value }}</span>
+              <br>
+              <span v-if="'dns' === claim.type">CNAME <span v-if="claim.wildcard">*.</span>{{ claim.value }}: {{ site.deviceDomain }}</span>
+              <br>
+              <span v-if="'dns' === claim.type">TXT _claim-challenge.{{ claim.value }}: {{ claim.challenge }}</span>
+              <br>
+              <button v-on:click.prevent="checkDns(claim)">Check</button>
+            </li>
+          </ol>
+        </div>
+
+        <h3>Devices</h3>
+        <div v-if="!devices.length">
+          You can add up to 5 devices:
+          <pre><code>curl -sf https://get.telebit.io/ | bash</code></pre>
+        </div>
+        <div v-if="devices.length">
+          <ol>
+            <li v-for="device in devices">
+              <span v-if="device.id">{{ device.id }}</span> {{ device.socketId }}
+              <ol>
+                <li v-for="name in device.names">{{ name }}</li>
+              </ol>
+            </li>
+          </ol>
+        </div>
+
         <h3>Domains</h3>
-        <ol>
-          <li v-for="domain in domains">
-            <span v-if="domain.wildcard">*.</span>{{ domain.name }} <span v-if="domain.hostname">- {{domain.hostname}} ({{domain.os}} {{domain.arch}})</span>
-          </li>
-        </ol>
+        <form v-on:submit.prevent="challengeDns()">
+          Add a custom domain:
+          <input v-model="newDomain" placeholder="example.com" type="text" required/>
+          <button type="submit">Next</button>
+        </form>
+        <div v-if="domains.length">
+          <ol>
+            <li v-for="domain in domains">
+              <span v-if="domain.wildcard">*.</span>{{ domain.name }} <span v-if="domain.hostname">- {{domain.hostname}} ({{domain.os}} {{domain.arch}})</span>
+            </li>
+          </ol>
+        </div>
+
+        <h3>Debug: Token</h3>
         <pre><code v-text="token"></code></pre>
       </div>
 
