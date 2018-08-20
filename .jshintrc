@@ -10,7 +10,7 @@
 , "immed": true
 , "undef": true
 , "unused": true
-, "latedef": true
+, "latedef": "nofunc"
 , "curly": true
 , "trailing": true
 }
