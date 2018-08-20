@@ -5,27 +5,30 @@
   <body>
 
     <div class="v-app">
+      <div v-if="spinner" style="position: absolute; width: 100%; height: 100%; background-color: #ddd;">Loading... </div>
 
       <div v-if="!hasAccount">
         <h1>Login</h1>
-        <form class="js-auth-form">
-          <input class="js-auth-subject" placeholder="email" type="email" required/>
+        <form class="js-auth-form" v-on:submit.prevent="login()">
+          <input class="js-auth-subject" v-model="newEmail" placeholder="email" type="email" required/>
           <button class="js-auth-submit" type="submit">Login</button>
         </form>
       </div>
 
       <div v-if="hasAccount">
         <h1>Account</h1>
+        <button v-on:click.prevent.stop="logout()" type="click">Logout</button>
         <form v-on:submit.prevent="challengeDns()">
           Add a custom domain:
           <input v-model="newDomain" placeholder="example.com" type="text" required/>
           <button type="submit">Next</button>
         </form>
-        <form v-on:submit.prevent="challengeEmail()">
+        <!-- not yet -->
+        <!--form v-on:submit.prevent="challengeEmail()">
           Authorize another email:
           <input v-model="newEmail" placeholder="jon@example.com" type="email" required/>
           <button type="submit">Next</button>
-        </form>
+        </form-->
         <h3>Claims</h3>
         <p>If your DNS host supports ANAME records, please use those instead of CNAMEs.</p>
         <p>If CNAMEs are not supported, set an A record to {{ site.deviceDomainA }}.</p>
