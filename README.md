@@ -173,3 +173,23 @@ The user and group `telebit` should be created.
 # Linux
 sudo setcap 'cap_net_bind_service=+ep' $(which node)
 ```
+
+API
+===
+
+The authentication method is abstract so that it can easily be implemented for various users and use cases.
+
+```
+// bin/telebit-relay.js
+state.authenticate()                  // calls either state.extensions.authenticate or state.defaults.authenticate
+                                      // which, in turn, calls Server.onAuth()
+
+state.extensions = require('../lib/extensions');
+state.extensions.authenticate({
+  state: state                        // lib/relay.js in-memory state
+, auth: 'xyz.abc.123'                 // arbitrary token, typically a JWT (default handler)
+})
+
+// lib/relay.js
+Server.onAuth(state, srv, rawAuth, validatedTokenData);
+```
