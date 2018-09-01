@@ -2,6 +2,10 @@
 (function () {
 'use strict';
 
+var fs = require('fs');
+var path = require('path');
+var os = require('os');
+
 var pkg = require('../package.json');
 
 var argv = process.argv.slice(2);
@@ -67,54 +71,59 @@ function applyConfig(config) {
     state.config.greenlock.configDir = require('os').homedir() + require('path').sep + 'acme';
   }
 
+  // The domains being approved for the first time are listed in opts.domains
+  // Certs being renewed are listed in certs.altnames
   function approveDomains(opts, certs, cb) {
     if (state.debug) { console.log('[debug] approveDomains', opts.domains); }
-    // This is where you check your database and associated
-    // email addresses with domains and agreements and such
 
-    // The domains being approved for the first time are listed in opts.domains
-    // Certs being renewed are listed in certs.altnames
-    if (certs) {
-      opts.domains = certs.altnames;
-      cb(null, { options: opts, certs: certs });
-      return;
-    }
-
-    if (!state.validHosts) { state.validHosts = {}; }
-    if (!state.validHosts[opts.domains[0]] && state.config.vhost) {
-      if (state.debug) { console.log('[sni] vhost checking is turned on'); }
-      var vhost = state.config.vhost.replace(/:hostname/, opts.domains[0]);
-      require('fs').readdir(vhost, function (err, nodes) {
-        if (state.debug) { console.log('[sni] checking fs vhost', opts.domains[0], !err); }
-        if (err) { check(); return; }
-        if (nodes) { approve(); }
-      });
-      return;
-    }
-
-    function approve() {
+    function allow() {
       state.validHosts[opts.domains[0]] = true;
       opts.email = state.config.email;
       opts.agreeTos = state.config.agreeTos;
       opts.communityMember = state.config.communityMember || state.config.greenlock.communityMember;
       opts.challenges = {
         // TODO dns-01
-        'http-01': require('le-challenge-fs').create({ webrootPath: '/tmp/acme-challenges' })
+        'http-01': require('le-challenge-fs').create({ webrootPath: path.join(os.tmpdir(), 'acme-challenges') })
       };
       opts.communityMember = state.config.communityMember;
       cb(null, { options: opts, certs: certs });
     }
 
-    function check() {
-      if (state.debug) { console.log('[sni] checking servername'); }
-      if (-1 !== state.servernames.indexOf(opts.domain) || -1 !== (state._servernames||[]).indexOf(opts.domain)) {
-        approve();
-      } else {
-        cb(new Error("failed the approval chain '" + opts.domains[0] + "'"));
-      }
+    function deny() {
+      cb(new Error("[bin/telebit-relay.js] failed the approval chain '" + opts.domains[0] + "'"));
+      return;
     }
 
-    check();
+    // 1) If the host was already allowed => allow
+    if (!state.validHosts) { state.validHosts = {}; }
+    if (state.validHosts[opts.domains[0]]) {
+      allow();
+      return;
+    }
+
+    // 2) If the host is in the config => allow
+    if (state.debug) { console.log('[sni] checking servername'); }
+    if (-1 !== state.servernames.indexOf(opts.domain)
+      || -1 !== (state._servernames||[]).indexOf(opts.domain)) {
+      allow();
+      return;
+    }
+
+    // 3) If dynamic vhosting is allowed
+    //    & a vhost folder exist for this domain => allow
+    if (state.config.vhost) {
+      if (state.debug) { console.log('[sni] vhost checking is turned on'); }
+      var vhost = state.config.vhost.replace(/:hostname/, opts.domains[0]);
+      require('fs').readdir(vhost, function (err, nodes) {
+        if (state.debug) { console.log('[sni] checking fs vhost', opts.domains[0], !err); }
+        if (err) { deny(); return; }
+        if (nodes) { allow(); }
+      });
+      return;
+    }
+
+    // 4) fallback => fail
+    deny();
   }
 
   state.greenlock = Greenlock.create({
@@ -196,7 +205,7 @@ function applyConfig(config) {
   //});
 }
 
-require('fs').readFile(confpath, 'utf8', function (err, text) {
+fs.readFile(confpath, 'utf8', function (err, text) {
   var config;
 
   var recase = require('recase').create({});
