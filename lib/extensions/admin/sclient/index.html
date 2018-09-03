@@ -14,10 +14,13 @@
     (think <code>telnet</code>, <code>netcat</code>, <code>ssh</code>, <code>openvpn</code>, etc).</p>
 
   <h2>Usage</h2>
-  <pre><code>$ sclient [-k] &lt;remote&gt; &lt;local&gt;</code></pre>
+  <pre><code>$ sclient [flags] &lt;remote&gt; &lt;local&gt;</code></pre>
+  <pre><code>$ sclient example.com:443 localhost:3000</code></pre>
   <h3>Flags</h3>
   <ul>
     <li><kbd>-k, --insecure</kbd> ignore invalid tls certificates</li>
+    <li><kbd>--servername &lt;string&gt;</kbd> spoof SNI
+      (to disable use IP as &lt;remote&gt; and do not use this option)</li>
   </ul>
   <h3>Arguments</h3>
   <ul>
@@ -25,7 +28,7 @@
     <li><kbd>&lt;local&gt;</kbd> the local address and port to bind to (default bind address is 127.0.0.1 or ::1)
       <ul>
         <li><code>-</code> may be used to read from stdin (like netcat)</li>
-        <li>may be omitted when piping. Example: <code>printf "GET / HTTP/1.1\r\n\r\n" | sclient telebit.cloud</code></li>
+        <li>may be omitted when piping (see pipe example below)</li>
       </ul>
     </li>
   </ul>
@@ -51,10 +54,11 @@
 &gt; Connection: close
 &gt;  
 </code></pre>
-  
-  </code></pre>
 
-  <h2>Downloads (standalone) <small>v1.1</small></h2>
+  <h3>pipe</h3>
+  <pre><code>$ printf "GET / HTTP/1.1\r\nHost: telebit.cloud\r\n\r\n" | sclient telebit.cloud</code></pre>
+
+  <h2>Downloads (standalone) <small>v1.2</small></h2>
   <ul>
     <li>Windows 7/8/10
       <a href="dist/windows/amd64/sclient.exe">Download</a>
