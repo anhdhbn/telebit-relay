@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--meta http-equiv="refresh" content="5;url=https://' + tokenData.domains.join(',') + '/?serviceport=' + tokenData.ports.join(',')" /-->
+  <title>Telebit - Pair Device</title>
 </head>
 <body>
   <script>document.body.hidden = true;</script>
 
   <div class="js-error" hidden>
-    <h1>Invalid Magic Link</h1>
-    <div class="js-magic-link">'{{magic_link}}' isn't a valid magic link code.
+    <h1>Invalid Pairing Link</h1>
+    <div class="js-magic-link">'{{magic_link}}' isn't a valid pairing link code.
       <br>Links are only valid for a limited time, so you gotta act fast.
     </div>
   </div>
@@ -18,7 +18,7 @@
     <h2>Pair <span class="js-hostname">Device</span></h1>
 
     <p>Enter your device pairing code:
-      <input type="text" name="pair-code" placeholder="ex: 000 000">
+      <input type="text" name="pair-code" placeholder="ex: 0000">
     </p>
 
     <ul>
@@ -35,26 +35,25 @@
 
   <div class="js-authz" hidden>
 
-    <h1>Telebit Authorized</h1>
+    <h1>Telebit</h1>
 
-    <h2>Waiting for your device to connect...</h2>
-    <p>Check your device to complete the pairing.</p>
+    <ul>
+      <li><label><input type="checkbox" checked disabled> Authorized</label></li>
+      <li><label><input type="checkbox" checked disabled>
+        Generated <span class="js-domainname">xxx-xxx-xxx.example.com</span> just for you</label></li>
+      <li><label><input type="checkbox" disabled> Waiting for your device to pair</label></li>
+      <li><label><input type="checkbox" disabled>
+        Securing your new domain</label></li>
+    </ul>
 
-    <h2>🔒 <span class="js-domainname">xxx-xxx-xxx.example.com</span></h2>
-    <p>When your device is paired you will be redirected to
-      <a class="js-new-href">{{js-new-href}}</a>.
-    </p>
+    <p><strong>Check the command line on your device to finish pairing.</strong></p>
 
-    <h2 class="js-serviceport">xxxxx</h2>
-    <p>When your device is paired you will be able to use <span class="js-serviceport">xxxxx</span>
-    for SSH, and other TCP protocols.</p>
-    <pre><code>telebit ssh auto
+    <h2>Debug Info</h2>
+    <p><a class="js-new-href">{{js-new-href}}</a></p>
+    <p class="js-serviceport">xxxxx</p>
 
-ssh <span class="js-domainname">{{servername}}</span> -p <span class="js-serviceport">{{serviceport}}</span></code></pre>
-</code></pre>
-
-    <h2>Authorization Token</h2>
-    <small><pre><code class="js-token">{{js-token}}</code></pre></small>
+    <p><small>Authorization Token:
+      <pre><code class="js-token">{{js-token}}</code></pre></small></p>
 
   </div>
 
