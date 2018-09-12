@@ -2,9 +2,61 @@
 <html>
 <head>
   <title>Telebit - Pair Device</title>
+  <link href="./css/main.css" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'Source Sans Pro';
+      font-style: normal;
+      font-display: block;
+      font-weight: 400;
+      src: local('Source Sans Pro Regular'), local('SourceSansPro-Regular'), url(/static-site-assets/fonts/6xK3dSBYKcSV-LCoeQqfX1RYOo3qOK7l.woff2) format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    @font-face {
+      font-family: 'Source Sans Pro';
+      font-style: normal;
+      font-weight: 700;
+      font-display: block;
+      src: local('Source Sans Pro Bold'), local('SourceSansPro-Bold'), url(/static-site-assets/fonts/6xKydSBYKcSV-LCoeQqfX1RYOo3ig4vwlxdu.woff2) format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    @font-face {
+      font-family: 'Source Code Pro';
+      font-style: normal;
+      font-weight: 400;
+      src: local('Source Code Pro'), local('SourceCodePro-Regular'), url(/static-site-assets/fonts/HI_SiYsKILxRpg3hIP6sJ7fM7PqlPevW.woff2) format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+  </style>
+
 </head>
 <body>
   <script>document.body.hidden = true;</script>
+  <!-- let's define our SVG that we will reuse -->
+  <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" viewBox="0 0 24 24">
+    <defs>
+      <g id="svg-check">
+        <path fill="none" d="M0 0h24v24H0z"/>
+        <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
+      </g>
+      <g id="svg-checked">
+        <path d="M0 0h24v24H0z" fill="none"/>
+        <path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V5c0-1.1-.89-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+      </g>
+      <g id="svg-unchecked">
+        <path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+        <path d="M0 0h24v24H0z" fill="none"/>
+      </g>
+      <g id="svg-download">
+        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+        <path d="M0 0h24v24H0z" fill="none"/>
+      </g>
+      <g id="svg-computer">
+        <path d="M0 0h24v24H0z" fill="none"/>
+        <path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/>
+      </g>
+    </defs>
+  </svg>
 
   <div class="js-error" hidden>
     <h1>Invalid Pairing Link</h1>
@@ -12,30 +64,51 @@
       <br>Links are only valid for a limited time, so you gotta act fast.
     </div>
   </div>
-
-  <div class="js-magic" hidden><form class="js-submit">
-    <h1>Telebit</h1>
+  <div class="container js-magic" hidden><form class="js-submit">
+    <h1 class="logo">Telebit</h1>
+    <svg class="icon-computer" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+      <use xlink:href="#svg-computer"></use>
+    </svg>
     <h2>Pair <span class="js-hostname">Device</span></h1>
 
-    <p>Enter your device pairing code:
-      <input type="text" name="pair-code" placeholder="ex: 0000">
-    </p>
+    <div>
+      <label>Enter your device pairing code:
+        <input type="text" name="pair-code" placeholder="ex: 0000">
+      </label>
+    </div>
 
-    <ul>
-      <li><label><input name="telebit-agree" type="checkbox" required> Agree to Telebit Terms of Service</label>
-      </li>
-      <li><label><input name="letsencrypt-agree" type="checkbox" required> Agree to Let's Encrypt Terms of Service</label>
-      </li>
-    </ul>
-
-    <p>
-    <button type="submit">Claim Device</button>
-    </p>
+    <div class="checkbox-array">
+      <label>
+        <input name="telebit-agree" type="checkbox" required>
+        <svg class="icon-checked-box" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <use xlink:href="#svg-checked"></use>
+        </svg>
+        <svg class="icon-unchecked-box"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <use xlink:href="#svg-unchecked"></use>
+        </svg>
+        Agree to &nbsp<a target="_blank" href="/legal/">Telebit&trade; Terms of Service</a>?
+      </label>
+      <label>
+        <input name="letsencrypt-agree" type="checkbox" required>
+        <svg class="icon-checked-box" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <use xlink:href="#svg-checked"></use>
+        </svg>
+        <svg class="icon-unchecked-box" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <use xlink:href="#svg-unchecked"></use>
+        </svg>
+        Agree to Let's Encrypt&trade; Terms of Service
+      </label>
+    </div>
+    <div>
+      <button type="submit">Claim Device</button>
+    </div>
   </form></div>
-
   <div class="js-authz" hidden>
 
-    <h1>Telebit</h1>
+    <h1 class="logo">Telebit</h1>
+    <svg class="icon-computer" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+      <use xlink:href="#svg-computer"></use>
+    </svg>
 
     <ul>
       <li><label><input type="checkbox" checked disabled> Authorized</label></li>
