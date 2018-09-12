@@ -35,7 +35,7 @@
 
   <h2>Examples</h2>
   <h3>SSH</h3>
-  <pre><code>$ ssh -o ProxyCommand="sclient %h:443" jon.telebit.io</code></pre>
+  <pre><code>$ ssh -o ProxyCommand="sclient %h" jon.telebit.io</code></pre>
 
   <p>This is useful to be able to connect to SSH even from behind a corporate packet-inspection firewall.
   It can also be used to multiplex and relay multiple ssh connections through a single host.
