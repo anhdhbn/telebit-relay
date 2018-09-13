@@ -85,7 +85,7 @@ button {
     margin: 1em 0;
 }
 
-button[disabled=true] {
+button:disabled {
     background-color: #d9d9d9;
 }
 
