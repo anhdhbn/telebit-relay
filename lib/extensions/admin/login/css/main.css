@@ -12,9 +12,12 @@ body {
     font-family: Source Sans Pro, sans-serif;
     font-size: 18px;
     color: #1a1a1a;
+    letter-spacing: -0.022222222em;
+    line-height: 1.33;
+    margin: 0;
 }
 
-svg.icon-computer {width: 4em;fill: #1a1a1a;}
+svg.icon-computer {width: 4em;height: 4em;}
 
 .container {
     text-align: center;
@@ -53,8 +56,6 @@ svg.icon-computer {width: 4em;fill: #1a1a1a;}
     background: #DDDDDD;
 }
 .checkbox-array .icon-checked-box, .checkbox-array .icon-unchecked-box {
-    width: 1.333333333em;
-    fill: #1a1a1a;
     margin-right: 0.666666667em;
 }
 
@@ -91,8 +92,111 @@ button:disabled {
 
 h1.logo {
     font-size: 1.555555556em;
+    margin-bottom: 1.777777778em;
 }
 
 h2 {
     font-size: 1.777777778em;
+    margin: 0;
+}
+
+svg {
+    width: 1.333333333em;
+    height: 1.333333333em;
+    fill: #1a1a1a;
+}
+
+svg.authorized-check {
+    fill: #63f794;
+    margin-right: 0.666666667em;
+}
+
+.progress .row {
+    display:  flex;
+    justify-content: left;
+    margin: 0.6666em 0;
+}
+
+.spinner-ball {
+    width: 4px;
+    height: 4px;
+    border-radius: 5px;
+    background: #1a1a1a;
+    margin: 2px;
+}
+
+span.spinner {
+    display: flex;
+    align-items: center;
+    margin-right: 0.666666667em;
+}
+
+.important-text {
+    font-weight: bold;
+}
+
+.progress {
+    padding: 0.666666667em 0;
+    display: inline-block;
+}
+
+.debugging-info-container {
+    text-align: center;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    background: white;
+    /* overflow: hidden; */
+}
+
+.debugging-info-container pre {
+    word-break: break-all;
+    white-space: pre-wrap;
+}
+
+.debugging-info {
+    max-width: 65em;
+    margin: 0 auto;
+}
+
+span.debugging.button {
+    display: inline-flex;
+}
+
+span.js-debugging-button.debugging-button {
+    display: inline-flex;
+}
+
+.debugging-button {
+    display: inline-flex;
+    padding: 0.5em;
+    position: absolute;
+    bottom: 100%;
+    transform: translateX(-50%);
+}
+
+.debugging-info-container.visible .debugging-button svg {
+    transform: rotate(180deg);
+}
+
+.debugging-button svg {transition: transform 0.3s;}
+
+.debug-drawer {
+    /* position: relative; */
+    transform: translateY(100%);
+    transition: transform 0.3s;
+    padding: 0.1em 0;
+}
+
+p {
+    margin: 0;
+}
+
+.debugging-info-container.visible .debug-drawer {
+    transform: translateY(0);
+}
+
+.debugging-info-container {
+    padding-top: 3em;
+    overflow: hidden;
 }

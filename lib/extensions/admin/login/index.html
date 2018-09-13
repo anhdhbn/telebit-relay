@@ -3,6 +3,7 @@
 <head>
   <title>Telebit - Pair Device</title>
   <link href="./css/main.css" rel="stylesheet">
+  <link href="./css/animations.css" rel="stylesheet">
   <style>
     @font-face {
       font-family: 'Source Sans Pro';
@@ -32,8 +33,8 @@
 </head>
 <body>
   <script>document.body.hidden = true;</script>
-  <!-- let's define our SVG that we will reuse -->
-  <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" viewBox="0 0 24 24">
+  <!-- let's define our SVG that we will use later -->
+  <svg width="0" height="0" viewBox="0 0 24 24">
     <defs>
       <g id="svg-check">
         <path fill="none" d="M0 0h24v24H0z"/>
@@ -55,6 +56,14 @@
         <path d="M0 0h24v24H0z" fill="none"/>
         <path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/>
       </g>
+      <g id="svg-circle-check">
+        <path d="M0 0h24v24H0z" fill="none"/>
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+      </g>
+      <g id="svg-arrow-down">
+        <path d="M7.41,8.59L12,13.17l4.59-4.58L18,10l-6,6l-6-6L7.41,8.59z"/>
+        <path fill="none" d="M0,0h24v24H0V0z"/>
+      </g>
     </defs>
   </svg>
 
@@ -66,30 +75,30 @@
   </div>
   <div class="container js-magic" hidden><form class="js-submit">
     <h1 class="logo">Telebit</h1>
-    <svg class="icon-computer" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <svg class="icon-computer" viewBox="0 0 24 24">
       <use xlink:href="#svg-computer"></use>
     </svg>
     <h2>Pair <span class="js-hostname">Device</span></h1>
     <label>Enter your device pairing code:
-      <input type="text" name="pair-code" placeholder="ex: 0000">
+      <input type="text" name="pair-code" placeholder="ex: 0000" autofocus>
     </label>
     <div class="checkbox-array">
       <label>
         <input name="telebit-agree" type="checkbox" required>
-        <svg class="icon-checked-box" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <svg class="icon-checked-box" viewBox="0 0 24 24">
           <use xlink:href="#svg-checked"></use>
         </svg>
-        <svg class="icon-unchecked-box"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <svg class="icon-unchecked-box"  viewBox="0 0 24 24">
           <use xlink:href="#svg-unchecked"></use>
         </svg>
         Agree to &nbsp<a target="_blank" href="/legal/">Telebit&trade; Terms of Service</a>?
       </label>
       <label>
         <input name="letsencrypt-agree" type="checkbox" required>
-        <svg class="icon-checked-box" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <svg class="icon-checked-box" viewBox="0 0 24 24">
           <use xlink:href="#svg-checked"></use>
         </svg>
-        <svg class="icon-unchecked-box" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <svg class="icon-unchecked-box" viewBox="0 0 24 24">
           <use xlink:href="#svg-unchecked"></use>
         </svg>
         Agree to Let's Encrypt&trade; Terms of Service
@@ -99,33 +108,61 @@
       <button type="submit" disabled>Claim Device</button>
     </div>
   </form></div>
-  <div class="js-authz" hidden>
-
+  <div class="container js-authz" hidden>
     <h1 class="logo">Telebit</h1>
-    <svg class="icon-computer" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <svg class="icon-computer" viewBox="0 0 24 24">
       <use xlink:href="#svg-computer"></use>
     </svg>
-
-    <ul>
-      <li><label><input type="checkbox" checked disabled> Authorized</label></li>
-      <li><label><input type="checkbox" checked disabled>
-        Generated <span class="js-domainname">xxx-xxx-xxx.example.com</span> just for you</label></li>
-      <li><label><input type="checkbox" disabled> Waiting for your device to pair</label></li>
-      <li><label><input type="checkbox" disabled>
-        Securing your new domain</label></li>
-    </ul>
-
-    <p><strong>Check the command line on your device to finish pairing.</strong></p>
-
-    <h2>Debug Info</h2>
-    <p><a class="js-new-href">{{js-new-href}}</a></p>
-    <p class="js-serviceport">xxxxx</p>
-
-    <p><small>Authorization Token:
-      <pre><code class="js-token">{{js-token}}</code></pre></small></p>
-
+    <h2>Pair <span class="js-hostname">Device</span></h1>
+    <div>
+      <div class="progress">
+        <div class="row">
+          <svg class="authorized-check" viewBox="0 0 24 24">
+            <use xlink:href="#svg-circle-check"></use>
+          </svg>
+          Authorized
+        </div>
+        <div class="row">
+          <span class="spinner">
+            <div class="spinner-ball ball-1"></div>
+            <div class="spinner-ball ball-1"></div>
+            <div class="spinner-ball ball-1"></div>
+          </span>
+          Waiting for device to pair
+        </div>
+      </div>
+    </div>
+    <div class="important-text">
+      Check the command line on your device to finish pairing.
+    </div>
   </div>
-
-  <script src="js/app.js"></script>
+  <div class="js-debug-container debugging-info-container" hidden>
+    <div class="debug-drawer">
+      <span class="js-debug-button debugging-button">
+        Debugging info <svg class="debugging-arrow" viewBox="0 0 24 24">
+          <use xlink:href="#svg-arrow-down"></use>
+        </svg>
+      </span>
+      <div class="js-debug-info debugging-info">
+        <p><a class="js-new-href">{{js-new-href}}</a></p>
+        <p class="js-serviceport">xxxxx</p>
+        <p><small>Authorization Token:
+          <pre><code class="js-token">{{js-token}}</code></pre></small></p>
+      </div>
+    </div>
+  </div>
+  <div class="container js-finish" hidden>
+    <h1 class="logo">Telebit</h1>
+    <svg class="icon-computer" viewBox="0 0 24 24">
+      <use xlink:href="#svg-computer"></use>
+    </svg>
+    <h2>Success!</h1>
+    <div>You've successfully paired 
+      <span class="js-hostname">your devied</span>
+      with Telebit.
+    </div>
+    <button class="js-finish-button">Finish</button>
+    <script src="js/app.js"></script>
+  </div>
 </body>
 </html>
