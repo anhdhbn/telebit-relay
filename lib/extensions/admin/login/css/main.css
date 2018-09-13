@@ -64,3 +64,35 @@ svg.icon-computer {width: 4em;fill: #1a1a1a;}
     font-size: 0.833333333em;
     margin: 0.4em 0;
 }
+
+input[type=text] {
+    font-size: 1em;
+    padding: 0.444444444em 0.888889em;
+    width: 100%;
+    border: solid 1px #d9d9d9;
+    border-radius: 2px;
+    box-sizing: border-box;
+    margin: 0.888888889em 0;
+}
+
+button {
+    width: 100%;
+    background-color: #1a1a1a;
+    border: none;
+    font-size: 1em;
+    color: white;
+    padding: 0.44444em;
+    margin: 1em 0;
+}
+
+button[disabled=true] {
+    background-color: #d9d9d9;
+}
+
+h1.logo {
+    font-size: 1.555555556em;
+}
+
+h2 {
+    font-size: 1.777777778em;
+}
