@@ -5,6 +5,8 @@ body {
     letter-spacing: -0.022222222em;
     line-height: 1.33;
     margin: 0;
+    padding-bottom: 4em;
+    box-sizing: border-box;
 }
 
 p {
@@ -138,7 +140,7 @@ span.spinner {
 
 .debugging-info-container {
     text-align: center;
-    position: absolute;
+    position: fixed;
     bottom: 0;
     width: 100%;
     /* overflow: hidden; */
