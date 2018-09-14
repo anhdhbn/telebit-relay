@@ -15,7 +15,7 @@ p {
 
 h2 {
     font-size: 1.777777778em;
-    margin: 0;
+    margin: 0 0 1em 0;
 }
 
 svg {
@@ -112,7 +112,7 @@ svg.authorized-check {
 .progress .row {
     display:  flex;
     justify-content: left;
-    margin: 0.6666em 0;
+    margin: 0 0 0.6666em 0;
 }
 
 .spinner-ball {
@@ -134,8 +134,8 @@ span.spinner {
 }
 
 .progress {
-    padding: 0.666666667em 0;
     display: inline-block;
+    margin-bottom: 1.111177778em;
 }
 
 .debugging-info-container {
@@ -220,4 +220,9 @@ span.js-debugging-button.debugging-button {
   60% {transform: scale(1.3);}
   75% {transform: scale(1.3);}
   100% {transform: scale(1);}
+}
+
+
+.finish-button {
+    margin-top: 2.222222222em;
 }

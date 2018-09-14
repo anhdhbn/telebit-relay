@@ -78,7 +78,7 @@
       <use xlink:href="#svg-computer"></use>
     </svg>
     <h2>Pair <span class="js-hostname">Device</span></h1>
-    <label>Enter your device pairing code:
+    <label><span class="important-text">Enter your device pairing code</span>
       <input type="text" name="pair-code" placeholder="ex: 0000" autofocus>
     </label>
     <div class="checkbox-array">
@@ -90,7 +90,7 @@
         <svg class="icon-unchecked-box"  viewBox="0 0 24 24">
           <use xlink:href="#svg-unchecked"></use>
         </svg>
-        Agree to &nbsp<a target="_blank" href="/legal/">Telebit&trade; Terms of Service</a>?
+        <div>Agree to <a target="_blank" href="/legal/">Telebit&trade; Terms of Service</a></div>
       </label>
       <label>
         <input name="letsencrypt-agree" type="checkbox" required>
@@ -100,7 +100,7 @@
         <svg class="icon-unchecked-box" viewBox="0 0 24 24">
           <use xlink:href="#svg-unchecked"></use>
         </svg>
-        Agree to Let's Encrypt&trade; Terms of Service
+        <div>Agree to <a target="_blank" href="https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf"> Let's Encrypt&trade; Terms of Service</a></div>
       </label>
     </div>
     <div>
@@ -156,11 +156,10 @@
       <use xlink:href="#svg-computer"></use>
     </svg>
     <h2>Success!</h1>
-    <div>You've successfully paired 
-      <span class="js-hostname">your devied</span>
-      with Telebit.
+    <div>
+      <span class="important-text js-new-domain">______</span> is paired and ready to use for accessing your device and sharing your stuff.
     </div>
-    <button class="js-finish-button">Finish</button>
+    <button class="js-finish-button finish-button">Take Me There</button>
     <script src="js/app.js"></script>
   </div>
 </body>
