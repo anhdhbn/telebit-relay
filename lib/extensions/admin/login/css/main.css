@@ -141,7 +141,6 @@ span.spinner {
     position: absolute;
     bottom: 0;
     width: 100%;
-    background: white;
     /* overflow: hidden; */
 }
 
@@ -165,10 +164,14 @@ span.js-debugging-button.debugging-button {
 
 .debugging-button {
     display: inline-flex;
-    padding: 0.5em;
+    padding: 0.3em;
     position: absolute;
     bottom: 100%;
     transform: translateX(-50%);
+    background:  white;
+    border: solid #eee 1px;
+    border-radius: 5px 5px 0 0;
+    border-bottom: none;
 }
 
 .debugging-info-container.visible .debugging-button svg {
@@ -182,6 +185,10 @@ span.js-debugging-button.debugging-button {
     transform: translateY(100%);
     transition: transform 0.3s;
     padding: 0.1em 0;
+    background: white;
+    pointer-events: initial;
+    border-top: solid #eee 1px;
+    padding-top: 1em;
 }
 
 
@@ -192,6 +199,7 @@ span.js-debugging-button.debugging-button {
 .debugging-info-container {
     padding-top: 3em;
     overflow: hidden;
+    pointer-events: none;
 }
 
 .spinner .spinner-ball {
