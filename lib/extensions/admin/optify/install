@@ -1,0 +1,58 @@
+#!/bin/bash
+#<pre><code>
+set -e
+set -u
+
+# minimal os detection
+my_os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+
+# https://github.com/golang/go/wiki/GoArm#supported-architectures
+# minimal cpu arch detection
+my_arch="$(uname -m)"
+if [ "x86_64" == "$my_arch" ]; then
+  my_arch="amd64"
+elif [ "i386" == "$my_arch" ]; then
+  my_arch="386"
+elif [ -n "$($my_arch | grep arm)" ]; then
+	if [ -n "$(uname -a | grep aarch64)" ]; then
+		my_arch="arm64"
+	elif [ -n "$(uname -a | grep armv8l)" ]; then
+		my_arch="arm64"
+	elif [ -n "$(uname -a | grep armv7l)" ]; then
+		my_arch="armv7l"
+	elif [ -n "$(uname -a | grep armv6l)" ]; then
+		my_arch="armv6l"
+	else
+		echo "could not determine arm cpu architecture" >&2
+		exit 1
+	fi
+else
+	echo "could not determine cpu architecture" >&2
+	exit 1
+fi
+
+# get optify for this cpu and arch
+if [ -z "${OPTIFY_VERSION:-}" ]; then
+  latest_version="$(curl -fsSL https://telebit.cloud/optify/latest)"
+  OPTIFY_VERSION=$latest_version
+  echo "Installing optify-$OPTIFY_VERSION (latest)"
+else
+  echo "Installing optify OPTIFY_VERSION=$OPTIFY_VERSION"
+fi
+
+# download to a tmp folder
+#my_tmpdir="$(mktemp -d /tmp/optify.XXXXXXXX)"
+my_tmpdir="$(mktemp -d -t optify.XXXXXXXX)"
+my_url="https://telebit.cloud/optify/dist/${my_os}/${my_arch}/optify-${OPTIFY_VERSION}"
+if [ -n "$(type -p curl || true)" ]; then
+  my_out="$(curl -fsSL -o "$my_tmpdir/optify-${OPTIFY_VERSION}" "$my_url" || true)"
+elif [ -n "$(type -p wget || true)" ]; then
+  my_out="$(wget -q -c "$my_url" -O "$my_tmpdir/optify-${OPTIFY_VERSION}" || true)"
+else
+  echo "found neither wget nor curl" >&2
+  exit 1
+fi
+
+# check for downloader success
+chmod a+x "$my_tmpdir/optify-${OPTIFY_VERSION}"
+"$my_tmpdir/optify-${OPTIFY_VERSION}" --install
