@@ -1,8 +1,10 @@
 body{
   font-family: Source Sans Pro, sans-serrif;
-  font-size: 18px;
+  font-size: 17px;
   line-height: 1.3333;
   margin: 0;
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
 }
 
 a {
@@ -30,7 +32,7 @@ a:hover, u:hover {
 }
 
 .container {
-  width: 840px;
+  width: 788px;
   margin: auto;
 }
 
@@ -93,7 +95,7 @@ a.link-button.wide {
 }
 
 .demo-container {
-  margin: 1em 9.4444em 0;
+  margin-top: 1em;
   position: relative;
   height: 236px;
   width: 644px;
@@ -191,13 +193,13 @@ a.link-button.wide {
   content: ">";
 }
 
-h2 {text-align: center;font-size: 1.777778em;margin: 0 0 1.25em 0;}
+h2 {text-align: center;font-size: 1.77778em;margin: 0 0 1.25em 0;}
 
 body {}
 
 .donate-section {
   background-color: #f7f7f7;
-  padding: 1.777778em;
+  padding: 1.777778em 0;
 }
 
 .use-it {
@@ -215,7 +217,7 @@ body {}
   height: 1.583333333em;
   width: 1.5833333333em;
   font-weight: bold;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: space-around;
   background-color: #f8f8f8;
@@ -226,24 +228,27 @@ body {}
 .quickstart-step {
   font-size: 1.33333em;
   display: flex;
+  flex-wrap: wrap;
   margin-bottom: 2em;
-  overflow: hidden;
+  justify-content: center;
 }
 
 .quickstart-step-text {
-  width: 7.833333333em;
+  min-width: 9.583336em;
   margin-right: 1.3333333em;
-  flex-shrink: 0;
+  flex: 1 1;
+  display: flex;
 }
 
 .quickstart-terminal {
-  flex: 1;
+  flex: 0 0 36.7em;
   background-color: #f7f7f7;
   font-family: monospace;
-  font-size: 0.625em;
+  font-size: 0.8em;
+  width: 36.7em;
   line-height: 1.33;
   margin: 0;
-  padding: 0.8em 0 0.8em 2em;
+  padding: 0.8em 1em 0.8em 2em;
 }
 .quickstart-line:before {
   content: "  ";
@@ -263,6 +268,7 @@ h3 {
 .install-badges {
   display: flex;
   justify-content: space-between;
+  margin: auto;
 }
 
 .install-badge {
@@ -307,7 +313,7 @@ h3 {
 }
 
 .feature-list {
-  margin: 4em;
+  margin: 4em 0;
 }
 
 .donate-section h2 {
@@ -347,7 +353,7 @@ input {
 
 .mailing-list-form {
   background-color: #d9d9d9;
-  padding: 1.77777778em;
+  padding: 1.77777778em 0;
 }
 
 .mailing-list-form li img {
@@ -365,7 +371,7 @@ footer .container {
 footer {
   background-color: #b3b3b3;
   color: white;
-  padding: 1.444444444em;
+  padding: 1.444444444em 0;
 }
 
 footer li {
@@ -409,4 +415,19 @@ a {}
 
 .install-badge:hover path {
   fill: #ababab;
+}
+
+input[type="submit"] {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.quickstart-container {
+    max-width: 1025px;
+    width: auto;
+    padding: 0px 3.111111111em;
+}
+
+.quickstart-step-name {
+    display: inline-block;
 }

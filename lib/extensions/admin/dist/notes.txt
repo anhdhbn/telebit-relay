@@ -1,0 +1,86 @@
+Release Notes
+=============
+
+Table of Contents
+
+* v0.20.6 - protocol upgrade
+
+Re: v0.20.6
+===========
+
+Saturday, Sept 29, 2018 
+
+This version is a required update. I had to make some changes to the network
+protocol that were easy enough to make backwards-compatible in the client, but
+not worth the effort to do so on the server.
+
+Mac, Linux, Raspberry Pi Users:
+-------------------------------
+
+    curl -fsSL https://get.telebit.io | bash
+
+That should be quick and easy, but you may need to reboot your computer.
+
+Windows & npm users
+-------------------
+
+    npm install -g npm
+
+Note that on Windows the upgrade will **NOT** work while Telebit is
+running. `telebit restart` should kill it but, on Windows, won't actually
+restart it.
+
+This is not well tested, so please contact me (aj@ppl.family) if you have any
+trouble.
+
+Upgrading *really* old versions
+---------------------
+
+If you have a version of telebit prior to v0.18.1 (which may not even list its
+version in `telebit help` yet), it'll probably be easiest to manually remove
+the old telebit files first:
+
+    sudo rm -rf ~/Applications/telebit* ~/.config/telebit*
+    sudo rm -rf /opt/telebit* /etc/telebit* /etc/systemd/system/telebit*
+
+You'll lose your current domain. If that's an issue, contact me and we can work
+it out.
+
+Rationale
+---------
+
+> "If it ain't broke, don't fix it" - Ancient Redneck Proverb
+
+> "When is broke, is most right time to fix" -  Ageless Chinese Adage
+
+There's a delicate balance between the two and in my infinite wisdom I've
+decided that now is the right time to fix.
+There are some rather disruptive bugs in the network protocol and fixing them
+means breaking most existing clients.
+
+If you've been using telebit on a daily basis, especially with ssh, I believe
+that'll you see benefit immediately and even moreso once the server is updated.
+It's worth it.
+
+Additional Notes
+----------------
+
+A number of good fixes are in here:
+
+
+### `telebit help`
+
+The in-app cli help is now correctly documented. Not everything _works_ as
+documented, however. Feel free to poke around and give me feedback.
+
+
+### `telebit ssh none`
+
+Previously `telebit ssh none` behaved identically to `telebit ssh auto`.
+
+The output correctly showed the actual behavior, but it didn't make sense.
+
+Bascially this was happening: `telebit.ssh = telebit.ssh || 22`. So when it
+it was `false` it became `true`
+
+It was changed to this `if (!('ssh' in telebit)) { telebit.ssh = 22; }`.

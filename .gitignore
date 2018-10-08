@@ -1,4 +1,8 @@
 emails
+lib/extensions/permissions.json
+lib/extensions/permissions.json.bak
+lib/extensions/admin/sclient/dist/
+lib/extensions/admin/optify/dist/
 node_modules.*
 include
 bin/node

@@ -1,63 +1,161 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--meta http-equiv="refresh" content="5;url=https://' + tokenData.domains.join(',') + '/?serviceport=' + tokenData.ports.join(',')" /-->
+  <title>Telebit - Pair Device</title>
+  <link href="./css/main.css" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'Source Sans Pro';
+      font-style: normal;
+      font-display: block;
+      font-weight: 400;
+      src: local('Source Sans Pro Regular'), local('SourceSansPro-Regular'), url(/static-site-assets/fonts/6xK3dSBYKcSV-LCoeQqfX1RYOo3qOK7l.woff2) format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    @font-face {
+      font-family: 'Source Sans Pro';
+      font-style: normal;
+      font-weight: 700;
+      font-display: block;
+      src: local('Source Sans Pro Bold'), local('SourceSansPro-Bold'), url(/static-site-assets/fonts/6xKydSBYKcSV-LCoeQqfX1RYOo3ig4vwlxdu.woff2) format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+  </style>
+  <link rel="preload" href="/static-site-assets/fonts/6xKydSBYKcSV-LCoeQqfX1RYOo3ig4vwlxdu.woff2" as="font" crossorigin="anonymous">
+  <link rel="preload" href="/static-site-assets/fonts/6xK3dSBYKcSV-LCoeQqfX1RYOo3qOK7l.woff2" as="font" crossorigin="anonymous">
+
 </head>
 <body>
   <script>document.body.hidden = true;</script>
+  <!-- let's define our SVG that we will use later -->
+  <svg width="0" height="0" viewBox="0 0 24 24">
+    <defs>
+      <g id="svg-check">
+        <path fill="none" d="M0 0h24v24H0z"/>
+        <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
+      </g>
+      <g id="svg-checked">
+        <path d="M0 0h24v24H0z" fill="none"/>
+        <path d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V5c0-1.1-.89-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+      </g>
+      <g id="svg-unchecked">
+        <path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+        <path d="M0 0h24v24H0z" fill="none"/>
+      </g>
+      <g id="svg-download">
+        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+        <path d="M0 0h24v24H0z" fill="none"/>
+      </g>
+      <g id="svg-computer">
+        <path d="M0 0h24v24H0z" fill="none"/>
+        <path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/>
+      </g>
+      <g id="svg-circle-check">
+        <path d="M0 0h24v24H0z" fill="none"/>
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+      </g>
+      <g id="svg-arrow-down">
+        <path d="M7.41,8.59L12,13.17l4.59-4.58L18,10l-6,6l-6-6L7.41,8.59z"/>
+        <path fill="none" d="M0,0h24v24H0V0z"/>
+      </g>
+    </defs>
+  </svg>
 
   <div class="js-error" hidden>
-    <h1>Invalid Magic Link</h1>
-    <div class="js-magic-link">'{{magic_link}}' isn't a valid magic link code.
+    <h1>Invalid Pairing Link</h1>
+    <div class="js-magic-link">'{{magic_link}}' isn't a valid pairing link code.
       <br>Links are only valid for a limited time, so you gotta act fast.
     </div>
   </div>
-
-  <div class="js-magic" hidden><form class="js-submit">
-    <h1>Telebit</h1>
+  <div class="container js-magic" hidden><form class="js-submit">
+    <h1 class="logo">Telebit</h1>
+    <svg class="icon-computer" viewBox="0 0 24 24">
+      <use xlink:href="#svg-computer"></use>
+    </svg>
     <h2>Pair <span class="js-hostname">Device</span></h1>
-
-    <p>Enter your device pairing code:
-      <input type="text" name="pair-code" placeholder="ex: 000 000">
-    </p>
-
-    <ul>
-      <li><label><input name="telebit-agree" type="checkbox" required> Agree to Telebit Terms of Service</label>
-      </li>
-      <li><label><input name="letsencrypt-agree" type="checkbox" required> Agree to Let's Encrypt Terms of Service</label>
-      </li>
-    </ul>
-
-    <p>
-    <button type="submit">Claim Device</button>
-    </p>
+    <label><span class="important-text">Enter your device pairing code</span>
+      <input type="text" name="pair-code" placeholder="ex: 0000" autofocus>
+    </label>
+    <div class="checkbox-array">
+      <label>
+        <input name="telebit-agree" type="checkbox" required>
+        <svg class="icon-checked-box" viewBox="0 0 24 24">
+          <use xlink:href="#svg-checked"></use>
+        </svg>
+        <svg class="icon-unchecked-box"  viewBox="0 0 24 24">
+          <use xlink:href="#svg-unchecked"></use>
+        </svg>
+        <div>Agree to <a target="_blank" href="/legal/">Telebit&trade; Terms of Service</a></div>
+      </label>
+      <label>
+        <input name="letsencrypt-agree" type="checkbox" required>
+        <svg class="icon-checked-box" viewBox="0 0 24 24">
+          <use xlink:href="#svg-checked"></use>
+        </svg>
+        <svg class="icon-unchecked-box" viewBox="0 0 24 24">
+          <use xlink:href="#svg-unchecked"></use>
+        </svg>
+        <div>Agree to <a target="_blank" href="https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf"> Let's Encrypt&trade; Terms of Service</a></div>
+      </label>
+    </div>
+    <div>
+      <button type="submit" disabled>Claim Device</button>
+    </div>
   </form></div>
-
-  <div class="js-authz" hidden>
-
-    <h1>Telebit Authorized</h1>
-
-    <h2>Waiting for your device to connect...</h2>
-    <p>Check your device to complete the pairing.</p>
-
-    <h2>🔒 <span class="js-domainname">xxx-xxx-xxx.example.com</span></h2>
-    <p>When your device is paired you will be redirected to
-      <a class="js-new-href">{{js-new-href}}</a>.
-    </p>
-
-    <h2 class="js-serviceport">xxxxx</h2>
-    <p>When your device is paired you will be able to use <span class="js-serviceport">xxxxx</span>
-    for SSH, and other TCP protocols.</p>
-    <pre><code>telebit ssh auto
-
-ssh <span class="js-domainname">{{servername}}</span> -p <span class="js-serviceport">{{serviceport}}</span></code></pre>
-</code></pre>
-
-    <h2>Authorization Token</h2>
-    <small><pre><code class="js-token">{{js-token}}</code></pre></small>
-
+  <div class="container js-authz" hidden>
+    <h1 class="logo">Telebit</h1>
+    <svg class="icon-computer" viewBox="0 0 24 24">
+      <use xlink:href="#svg-computer"></use>
+    </svg>
+    <h2>Pair <span class="js-hostname">Device</span></h1>
+    <div>
+      <div class="progress">
+        <div class="row">
+          <svg class="authorized-check" viewBox="0 0 24 24">
+            <use xlink:href="#svg-circle-check"></use>
+          </svg>
+          Authorized
+        </div>
+        <div class="row">
+          <span class="spinner">
+            <div class="spinner-ball ball-1"></div>
+            <div class="spinner-ball ball-1"></div>
+            <div class="spinner-ball ball-1"></div>
+          </span>
+          Waiting for device to pair
+        </div>
+      </div>
+    </div>
+    <div class="important-text">
+      Check the command line on your device to finish pairing.
+    </div>
   </div>
-
-  <script src="js/app.js"></script>
+  <div class="js-debug-container debugging-info-container" hidden>
+    <div class="debug-drawer">
+      <span class="js-debug-button debugging-button">
+        Debugging info <svg class="debugging-arrow" viewBox="0 0 24 24">
+          <use xlink:href="#svg-arrow-down"></use>
+        </svg>
+      </span>
+      <div class="js-debug-info debugging-info">
+        <p><a class="js-new-href">{{js-new-href}}</a></p>
+        <p class="js-serviceport">xxxxx</p>
+        <p><small>Authorization Token:
+          <pre><code class="js-token">{{js-token}}</code></pre></small></p>
+      </div>
+    </div>
+  </div>
+  <div class="container js-finish" hidden>
+    <h1 class="logo">Telebit</h1>
+    <svg class="icon-computer" viewBox="0 0 24 24">
+      <use xlink:href="#svg-computer"></use>
+    </svg>
+    <h2>Success!</h1>
+    <div>
+      <span class="important-text js-new-domain">______</span> is paired and ready to use for accessing your device and sharing your stuff.
+    </div>
+    <button class="js-finish-button finish-button">Take Me There</button>
+    <script src="js/app.js"></script>
+  </div>
 </body>
 </html>

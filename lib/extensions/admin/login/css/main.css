@@ -1,0 +1,228 @@
+body {
+    font-family: Source Sans Pro, sans-serif;
+    font-size: 18px;
+    color: #1a1a1a;
+    letter-spacing: -0.022222222em;
+    line-height: 1.33;
+    margin: 0;
+    padding-bottom: 4em;
+    box-sizing: border-box;
+}
+
+p {
+    margin: 0;
+}
+
+h2 {
+    font-size: 1.777777778em;
+    margin: 0 0 1em 0;
+}
+
+svg {
+    width: 1.333333333em;
+    height: 1.333333333em;
+    fill: #1a1a1a;
+}
+
+svg.icon-computer {width: 4em;height: 4em;}
+
+button {
+    width: 100%;
+    background-color: #1a1a1a;
+    border: none;
+    font-size: 1em;
+    color: white;
+    padding: 0.44444em;
+    margin: 1em 0;
+}
+
+button:disabled {
+    background-color: #d9d9d9;
+}
+
+input[type=text] {
+    font-size: 1em;
+    padding: 0.444444444em 0.888889em;
+    width: 100%;
+    border: solid 1px #d9d9d9;
+    border-radius: 2px;
+    box-sizing: border-box;
+    margin: 0.888888889em 0;
+}
+
+.container {
+    text-align: center;
+    width: 17.777777778em;
+    margin: auto;
+}
+
+.checkbox-array {
+    display: flex;
+    flex-direction: column;
+    padding: 1em 0;
+}
+
+.checkbox-array input[type=checkbox] {
+    opacity: 0;
+    position: absolute;
+}
+
+.checkbox-array input[type=checkbox] ~ .icon-checked-box {
+    display: none;
+}
+
+.checkbox-array input[type=checkbox] ~ .icon-unchecked-box {
+    display: initial;
+}
+
+.checkbox-array input[type=checkbox]:checked ~ .icon-checked-box {
+    display: initial;
+}
+
+.checkbox-array input[type=checkbox]:checked ~ .icon-unchecked-box {
+    display: none;
+}
+
+.checkbox-array input[type=checkbox]:focus ~ .icon-checked-box, .checkbox-array input[type=checkbox]:focus ~ .icon-unchecked-box {
+    background: #DDDDDD;
+}
+.checkbox-array .icon-checked-box, .checkbox-array .icon-unchecked-box {
+    margin-right: 0.666666667em;
+}
+
+.checkbox-array label {
+    display: flex;
+    height: 1.333333333em;
+    font-size: 0.833333333em;
+    margin: 0.4em 0;
+}
+
+
+h1.logo {
+    font-size: 1.555555556em;
+    margin-bottom: 1.777777778em;
+}
+
+
+svg.authorized-check {
+    fill: #63f794;
+    margin-right: 0.666666667em;
+}
+
+.progress .row {
+    display:  flex;
+    justify-content: left;
+    margin: 0 0 0.6666em 0;
+}
+
+.spinner-ball {
+    width: 4px;
+    height: 4px;
+    border-radius: 5px;
+    background: #1a1a1a;
+    margin: 2px;
+}
+
+span.spinner {
+    display: flex;
+    align-items: center;
+    margin-right: 0.666666667em;
+}
+
+.important-text {
+    font-weight: bold;
+}
+
+.progress {
+    display: inline-block;
+    margin-bottom: 1.111177778em;
+}
+
+.debugging-info-container {
+    text-align: center;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    /* overflow: hidden; */
+}
+
+.debugging-info-container pre {
+    word-break: break-all;
+    white-space: pre-wrap;
+}
+
+.debugging-info {
+    max-width: 65em;
+    margin: 0 auto;
+}
+
+span.debugging.button {
+    display: inline-flex;
+}
+
+span.js-debugging-button.debugging-button {
+    display: inline-flex;
+}
+
+.debugging-button {
+    display: inline-flex;
+    padding: 0.3em;
+    position: absolute;
+    bottom: 100%;
+    transform: translateX(-50%);
+    background:  white;
+    border: solid #eee 1px;
+    border-radius: 5px 5px 0 0;
+    border-bottom: none;
+}
+
+.debugging-info-container.visible .debugging-button svg {
+    transform: rotate(180deg);
+}
+
+.debugging-button svg {transition: transform 0.3s;}
+
+.debug-drawer {
+    /* position: relative; */
+    transform: translateY(100%);
+    transition: transform 0.3s;
+    padding: 0.1em 0;
+    background: white;
+    pointer-events: initial;
+    border-top: solid #eee 1px;
+    padding-top: 1em;
+}
+
+
+.debugging-info-container.visible .debug-drawer {
+    transform: translateY(0);
+}
+
+.debugging-info-container {
+    padding-top: 3em;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.spinner .spinner-ball {
+  animation: pulsing 2s ease infinite;
+}
+
+.spinner .spinner-ball:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.spinner .spinner-ball:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes pulsing {
+  0% {transform: scale(1);}
+  35% {transform: scale(1);}
+  60% {transform: scale(1.3);}
+  75% {transform: scale(1.3);}
+  100% {transform: scale(1);}
+}
+
+
+.finish-button {
+    margin-top: 2.222222222em;
+}

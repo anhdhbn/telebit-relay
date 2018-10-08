@@ -2,13 +2,36 @@
 <html>
 	<head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=900">
 		<title>Telebit&trade; Cloud</title>
     <link href="static-site-assets/styles/main.css" rel="stylesheet">
     <link href="static-site-assets/styles/vertical-slide.css" rel="stylesheet">
-    <link 
-        href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700,900" 
-        rel="stylesheet"
-    >
+    <link href="static-site-assets/styles/1200.css" rel="stylesheet" media="(max-width:1075px)">
+    <style>
+      @font-face {
+        font-family: 'Source Sans Pro';
+        font-style: normal;
+        font-display: block;
+        font-weight: 400;
+        src: local('Source Sans Pro Regular'), local('SourceSansPro-Regular'), url(/static-site-assets/fonts/6xK3dSBYKcSV-LCoeQqfX1RYOo3qOK7l.woff2) format('woff2');
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+      @font-face {
+        font-family: 'Source Sans Pro';
+        font-style: normal;
+        font-weight: 700;
+        font-display: block;
+        src: local('Source Sans Pro Bold'), local('SourceSansPro-Bold'), url(/static-site-assets/fonts/6xKydSBYKcSV-LCoeQqfX1RYOo3ig4vwlxdu.woff2) format('woff2');
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+      @font-face {
+        font-family: 'Source Code Pro';
+        font-style: normal;
+        font-weight: 400;
+        src: local('Source Code Pro'), local('SourceCodePro-Regular'), url(/static-site-assets/fonts/HI_SiYsKILxRpg3hIP6sJ7fM7PqlPevW.woff2) format('woff2');
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+    </style>
 	</head>
 	<body>
     <header>
@@ -29,10 +52,9 @@
     </header><div class="hero">
       <div class="container">
         <div class="spiel">
-          <h1>Work from 127.0.0.1</h1>
-        </div>
-        <div class="hero-download">
-          <a class="link-button wide" href="#download-section">Download</a>
+          <h1>Access your devices
+            <br>Share your stuff
+          </h1>
         </div>
         <div aria-hidden="true" class="demo-row">
           <div class="demo-container">
@@ -44,7 +66,7 @@
                 <div class="demo-browser-address-bar">
                   <img src="static-site-assets/images/green-secure.png">
                   <div class="demo-browser-url">
-                    https://test-app.telebit.cloud
+                    https://jondoe.telebit.io
                   </div>
                 </div>
               </div>
@@ -55,12 +77,12 @@
           
             <div class="demo-terminal">
               <div class="demo-terminal-input">
-                ~/telebit http 3000
+                telebit http 3000
               </div>
               <div class="demo-terminal-line">&nbsp;
               </div>
               <div class="demo-terminal-output">
-                Forwarding https://jondoe.telebit.io => localhost:3000
+                Forwarding https://jondoe.telebit.io =&gt; localhost:3000
               </div>
             </div>
           </div>
@@ -68,7 +90,7 @@
       </div>
     </div>
     <div class="content">
-      <div class="container">
+      <div class="container quickstart-container">
         <h2 class="use-it">Use it <div class="sliding-vertical">
           <!-- to add more of or remove some of these, you will also need to update
               ./static-site-assets/styles/vertical-slide.css
@@ -84,13 +106,17 @@
         </div></h2>
         <h2 id="download-section">Quickstart with bash</h2>
         <div class="quickstart-step">
-          <div class="quickstart-step-number">1</div>
-          <div class="quickstart-step-text">Install Telebit</div>
-          <pre class="quickstart-terminal qickstart-terminal-prompt">curl https://get.telebit.io | bash</pre>
+          <div class="quickstart-step-text">
+            <div class="quickstart-step-number">1</div>
+            <div class="quickstart-step-name">Install Telebit</div>
+          </div>
+          <pre class="quickstart-terminal qickstart-terminal-prompt">curl https://get.telebit.io/ | bash</pre>
         </div>
         <div class="quickstart-step">
-          <div class="quickstart-step-number">2</div>
-          <div class="quickstart-step-text">Claim your device via Email</div>
+          <div class="quickstart-step-text">
+            <div class="quickstart-step-number">2</div>
+            <div class="quickstart-step-name">Claim your device via Email</div>
+          </div>
           <pre class="quickstart-terminal">Hello!
 
 Want to use 'Jon's Macbook Pro' with Telebit?
@@ -99,8 +125,10 @@ Just confirm your email address:
     <u>Confirm Email Address</u></pre>
         </div>
         <div class="quickstart-step">
-          <div class="quickstart-step-number">3</div>
-          <div class="quickstart-step-text">Enjoy Anytime, Anywhere Access</div>
+          <div class="quickstart-step-text">
+            <div class="quickstart-step-number">3</div>
+            <div class="quickstart-step-name">Enjoy Anytime, Anywhere Access</div>
+          </div>
           <pre class="quickstart-terminal"><strong>For Local Development</strong>
 
   <code class="quickstart-input">~/telebit http 3000</code>
@@ -122,7 +150,7 @@ Just confirm your email address:
   <code class="quickstart-output">Forwarding ssh+https (openssl proxy) =&gt; localhost:22</code>
 
   <code class="quickstart-input">ssh -p 5050 jondoe.telebit.io</code>
-  <code class="quickstart-input">ssh -o ProxyCommand="sclient %h:443" jondoe.telebit.io</code>
+  <code class="quickstart-input">ssh -o ProxyCommand="<a href="sclient/">sclient</a> %h" jondoe.telebit.io</code>
 
 <strong>For Debugging with TCP</strong>
 
@@ -304,7 +332,7 @@ Just confirm your email address:
             <div class="input-error email js-inactive"></div>
             <input type="email" name="email" id="email" placeholder="Email">
           </span>
-					<input class="link-button" type="submit">
+					<input class="link-button" type="submit" value="Join">
 				</form>
 				<ul>
           <li><img src="static-site-assets/images/done.svg" />Get exclusive invites to try new features</li>
