@@ -47,7 +47,13 @@ function applyConfig(config) {
   } else {
     state.Promise = require('bluebird');
   }
-  state.tlsOptions = {}; // TODO just close the sockets that would use this early? or use the admin servername
+  state.tlsOptions = {
+    // Handles disconnected devices
+    // TODO allow user to opt-in to wildcard hosting for a better error page?
+    SNICallback: function (servername, cb) {
+      return state.greenlock.tlsOptions.SNICallback(state.config.webminDomain || state.servernames[0], cb);
+    }
+  }; // TODO just close the sockets that would use this early? or use the admin servername
   state.config = config;
   state.servernames = config.servernames || [];
   state.secret = state.config.secret;
