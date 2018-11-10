@@ -1,0 +1,24 @@
+name: telebit-relay
+version: '0.20.0'
+summary: Because friends don't let friends localhost
+description: |
+  A server that works in combination with Telebit Remote
+  to allow you to serve http and https from any computer,
+  anywhere through a secure tunnel.
+
+grade: stable
+confinement: strict
+
+apps:
+  telebit-relay:
+    command: telebit-relay --config $SNAP_COMMON/config.yml
+    plugs: [network, network-bind]
+    daemon: simple
+
+parts:
+  telebit-relay:
+    plugin: nodejs
+    node-engine: 10.13.0
+    source: .
+    override-build: |
+      snapcraftctl build
